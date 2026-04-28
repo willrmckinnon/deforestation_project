@@ -1,10 +1,15 @@
 import yaml
 
-from shapely.geometry import box
+from shapely.geometry import box, Polygon
 from pyproj import Transformer
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
+import tkinter as tk
 
+import geopandas as gpd
+
+import xarray
+import numpy as np
 
 
 #Reads the config file
@@ -37,10 +42,7 @@ def point_to_polygon(lat, lon, dim=4000):
         for px, py in square.exterior.coords
     ]
 
-    return {
-        "type": "Polygon",
-        "coordinates": [coords]
-    }
+    return Polygon(coords)
 
 
 #Converts a set of polygons to a PIL Image Overlay
@@ -72,4 +74,51 @@ def polygons_to_overlay(polygons, shape, transform):
         draw.polygon(coords, outline=(255, 0, 0, 255), fill=(255, 0, 0, 80))
 
     return overlay
+
+
+#Simple tkinter to display an image
+def simple_image(image: Image):
+
+    #Display the image
+    root = tk.Tk()
+    root.title("Simple Image Display")
+
+    y, x = image.height, image.width
+    new_y = 1000
+    new_x = int((new_y/y) * x)
+    image = image.resize((new_x, new_y))
+
+    photo = ImageTk.PhotoImage(image)
+    label = tk.Label(root, image=photo)
+    label.image = photo 
+    label.pack()
+    root.mainloop()
+
+
+
+#Simple function to return the area of a polygon that is in WGS coordinates
+def get_wgs_area(poly):
+    gdf = gpd.GeoDataFrame(index=[0], crs='EPSG:4326', geometry=[poly])
+    A = gdf.to_crs('EPSG:32618').area[0]
+    return A/1000000 #Will return result in square km
+
+
+
+#Simple function to convert xarray to PIL Image
+def xarray_to_img(xr):
+    rgb = xarray.DataArray(np.zeros((xr.shape)), dims = ('band', 'y', 'x'))
+    i=0
+    #normalize
+    for band in xr:
+        band_max = int(band.max())
+        rgb[i] = (band/(band_max*0.75)).clip(min=0, max=1, keep_attrs = True)
+        i+=1
+
+
+    rgb = rgb.transpose('y', 'x', 'band')
+    rgb_uint8 = (rgb.values * 255).astype(np.uint8)
+    return Image.fromarray(rgb_uint8)
+
+
+
 

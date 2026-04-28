@@ -3,14 +3,17 @@ import rasterio
 import planetary_computer
 import numpy as np
 from datetime import datetime, timedelta
+import warnings
 
 from rasterio import windows, features, warp
 from rasterio.features import shapes
 from rasterio.enums import Resampling
 
-from shapely.geometry import shape, Polygon
+from shapely.geometry import shape, Polygon, mapping
+from shapely.ops import unary_union
 
 import geopandas as gpd
+import pandas as pd
 
 import cv2
 
@@ -19,92 +22,11 @@ import torch.nn as nn
 
 from PIL import Image
 
+from utils import helper
 
-#SPECIFICALLY FOR SENTINEL ITEMS
-#Primary class that performs actions on a a particular planetary_computer item
-class Sentinel_Item:
-    def __init__(self, item, aoi):
-        self.item = item
-        self.date = item.properties['datetime'][:10]
-        
-        #Collect the specific window in the item
-        with rasterio.open(item.assets["visual"].href) as ds:
-            aoi_bounds = features.bounds(aoi)
-            warped_aoi_bounds = warp.transform_bounds("epsg:4326", ds.crs, *aoi_bounds)
-            aoi_window = windows.from_bounds(*warped_aoi_bounds, transform=ds.transform)
-            self.window = aoi_window.round_offsets().round_lengths()
-            self.transform = ds.window_transform(self.window)
-            self.crs = ds.crs
-        
-        #Add coverage information
-        if item.properties['s2:high_proba_clouds_percentage']> 40: 
-            self.cloud_cover = True
-        else: self.cloud_cover = False
-
-        if item.properties['s2:thin_cirrus_percentage']> 10:
-            self.haze = True
-        else: self.haze = False
-
-
-    #Function to display the visual of the item
-    def get_visual(self):
-        #Setup the image
-        with rasterio.open(self.item.assets["visual"].href) as ds:
-            band_data = ds.read(window=self.window)
-
-        #Format the image for viewing
-        img = Image.fromarray(np.transpose(band_data, axes=[1, 2, 0]))
-
-        return img
-    
-
-    def get_array(self):
-        with rasterio.open(self.item.assets["visual"].href) as ds:
-            return ds.read(window=self.window)
-
-
-
-    #A function to collect the data from a specific band, not just visual
-    def collect_band_data(self, band, shape = None):
-        href = self.item.assets[band].href
-
-        with rasterio.open(href) as ds:            
-            #Method of reading the data depends on whether we neeed to define the exact shape
-            if shape == None:
-                return ds.read(1, window=self.window)    
-            else:
-                return ds.read(
-                    1,
-                    window = self.window,
-                    out_shape = shape,
-                    resampling = Resampling.bilinear
-                )
-
-
-
-    #Function to collect the thermal data for a given item
-    #Thermal logic taken from: https://www.sciencedirect.com/science/article/pii/S0924271621001337?via%3Dihub
-    def get_thermals(self):
-        self.thermal_bands = {}
-
-        self.thermal_bands['B8A'] = self.collect_band_data('B8A')
-
-        ref_shape = self.thermal_bands['B8A'].shape
-        for band in ['B11', 'B12']:
-            self.thermal_bands[band] = self.collect_band_data(band, shape = ref_shape)
-
-        SWIR1, SWIR2, NIR = self.thermal_bands['B11'], self.thermal_bands['B12'], self.thermal_bands['B8A']
-
-        self.thermal_array1 = (SWIR2 - SWIR1)/NIR
-        self.thermal_array2 = (SWIR2 - SWIR1)/(SWIR1 - NIR)
-
-        viewable_array1 = np.clip(self.thermal_array1/20 , 0, 1)
-        viewable_array2 = np.clip(self.thermal_array2/20 , 0, 1)
-
-        thermal_view1 = Image.fromarray((viewable_array1 * 255).astype("uint8"))
-        thermal_view2 = Image.fromarray((viewable_array2 * 255).astype("uint8"))
-
-        return [thermal_view1, thermal_view2]
+import stackstac
+import dask.diagnostics
+from pympler.asizeof import asizeof
 
 
 
@@ -112,48 +34,177 @@ class Sentinel_Item:
 #SPECIFICALLY FOR SENTINEL ITEMS
 #Class to collect items for a spacific observation area at a given time
 class ObservedArea:
-    def __init__(self, aoi, datetime, filter_cloud_cover = False):
+    def __init__(self, aoi, date_window, cloud_threshold = None):
         self.aoi = aoi
-        self.datetime = datetime
-        self.filter_cloud_cover = filter_cloud_cover
+        self.date_window = date_window
+        self.cloud_threshold = cloud_threshold
 
-        self.get_items()
+        candidate_items = self.get_items()
+
+        if len(candidate_items) > 0: 
+            self.items, self.coverage = self.filter_items(candidate_items)
+        else: 
+            self.items = []
+            self.coverage = 0
 
 
     #Function to collect the items associated with that area during that time
     def get_items(self):
-        self.items = []
+        items = []
         
         catalog = Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
             modifier = planetary_computer.sign_inplace)
 
         #Setup the Search
-        if self.filter_cloud_cover:
+        if self.cloud_threshold == None:
+            #Search without filtering clouds
             search = catalog.search(
                 collections=["sentinel-2-l2a"],
-                intersects=self.aoi,
-                datetime=self.datetime,
-                query={"eo:cloud_cover": {"lt": 5}}
+                intersects=mapping(self.aoi),
+                datetime=self.date_window
             )
         else:
+            #Search with cloud filter
             search = catalog.search(
                 collections=["sentinel-2-l2a"],
-                intersects=self.aoi,
-                datetime=self.datetime
+                intersects=mapping(self.aoi),
+                datetime=self.date_window,
+                query={"eo:cloud_cover": {"lt": self.cloud_threshold}}
             )
 
+
+
         #Collect the items and save as class Item in list
-        item_names = list(search.get_items())
-        for name in item_names: self.items.append(Sentinel_Item(name, self.aoi))
+        return list(search.get_items())
+  
 
 
-def get_first_item_no_clouds(aoi, target_date: datetime.date, max_attempts = 10):
-    num_days_per_attempt = 6
+    #method to take all the potential items and only get the most recent without cloud cover
+    def filter_items(self, item_candidates):
+        #A SERIES OF CHECKS
+        items = []
+
+        #Filter to only look at the newest item for each tile -----------
+        df = pd.DataFrame()
+        for item in item_candidates:
+            new_row = pd.DataFrame({
+                'item': [item],
+                'tile': [item.properties['s2:mgrs_tile']],
+                'date': [item.datetime]
+            })
+            df = pd.concat([df,new_row], ignore_index=True)
+
+        tile_names = list(set(df['tile']))
+
+        #Find the newest item and save to list
+        for name in tile_names:
+            tile_df = df[df['tile'] == name]
+            row = tile_df[tile_df['date'] == max(tile_df['date'])]
+            items.append(row.iloc[0]['item'])
+
+
+        #Check that the total area is covered --------------
+        area_list = []
+        for item in items:
+            item_poly = Polygon(item.geometry['coordinates'][0])
+            area_list.append(item_poly)
+
+        #Calculate first and last date ----------------------
+        dates = []
+        for item in items: dates.append(item.datetime)
+        first = min(dates)
+        earliest_date = f'{first.year}-{first.month}-{first.day}'
+        last = max(dates)
+        latest_date = f'{last.year}-{last.month}-{last.day}'
+
+
+        #Calc combined area of tiles and subtract from aoi
+        tot_coverage = unary_union(area_list) 
+        diff_poly = self.aoi.difference(tot_coverage)
+        missing_area = helper.get_wgs_area(diff_poly) #in square kilometers
+        aoi_area = helper.get_wgs_area(self.aoi)
+        coverage = (aoi_area-missing_area)/aoi_area
+        print(f'{self.cloud_threshold}% Cloud Cover: {len(items)} item(s) collected with {100*coverage:.2f}% of AOI covered -- Collected between {earliest_date} and {latest_date}', flush = True, end='\r' )
+        
+        return items, coverage
+
+
+
+#Function to return an observation without clouds closest to target date
+def get_observation_no_clouds(aoi, target_date: datetime.date, max_attempts = 3, max_cloud_threshold = 50):
+    num_days_per_attempt = 30
+    start_cloud_threshold = 20
+
+
+    obs = None
+    for attempt in range(max_attempts):
+
+        #Setup observation window
+        delay = int(attempt * num_days_per_attempt)
+        start_day = str(target_date) 
+        end_day = str(target_date - timedelta(days=delay))
+        date_window = end_day + '/' + start_day #Configure in a format for retrieval
+        print(f'Attempt {attempt+1} - {date_window}', end = '\r', flush=True)
+        
+
+
+        warnings.filterwarnings("ignore")
+        temp_obs = ObservedArea(aoi, date_window, cloud_threshold=start_cloud_threshold)
+
+        if temp_obs.coverage < 0.9: continue
+        else:
+            obs = temp_obs
+            return obs
+
+
+    #Increment the cloud threshold
+    for threshold in range(start_cloud_threshold, max_cloud_threshold+1, 10):
+        warnings.filterwarnings("ignore")
+        temp_obs = ObservedArea(aoi, date_window, cloud_threshold=threshold)
+        
+        if temp_obs.coverage < 0.9: continue
+        else:
+            obs = temp_obs
+            return obs
+
+            
+    if obs == None: 
+        raise Exception(f'No item without clouds found within {max_attempts*num_days_per_attempt} days of the search date')
+
+
+
+#Function to stitch together all the items in an observation to get a single snapshot for given bands
+def merge_obs(obs, bands):
+    if len(obs.items) < 1: raise Exception('Attempted to merge items for an empty observation')
+    signed_items = [planetary_computer.sign(item) for item in obs.items]
+
+    stack = stackstac.stack(
+        signed_items, 
+        bounds_latlon=obs.aoi.bounds,
+        assets = bands,
+        epsg = 4326)
+    median = stack.median(dim="time")
+
+    with dask.diagnostics.ProgressBar():
+        result = median.compute()
+        print(f'Resulting file size of {(asizeof(result)/ 1000000000):.2f} GB')
+
+    return result
+
+    
+
+
+
+#Function to return an observation without clouds closest to target date
+def get_first_item_no_clouds(aoi, target_date: datetime.date, max_attempts = 12):
+    num_days_per_attempt = 5
 
 
     item = None
     for attempt in range(max_attempts):
+        print(f'Attempt {attempt+1} ', end = '\r', flush=True)
+
         #Calculate the start and end dates for this search
         delay1 = int((attempt-1) * num_days_per_attempt)
         delay2 = int(attempt * num_days_per_attempt)
@@ -161,6 +212,7 @@ def get_first_item_no_clouds(aoi, target_date: datetime.date, max_attempts = 10)
         end_day = str(target_date - timedelta(days=delay2))
         date_window = end_day + '/' + start_day #Configure in a format for retrieval
 
+        warnings.filterwarnings("ignore")
         obs = ObservedArea(aoi, date_window, filter_cloud_cover=True)
 
         if len(obs.items) < 1: continue
