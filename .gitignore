@@ -1,4 +1,4 @@
 *.pth
 .env
 .env.*
-draft*.ipynb
+*.ipynb
