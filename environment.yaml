@@ -1,0 +1,50 @@
+name: geo-env
+
+channels:
+  - conda-forge
+  - pytorch
+
+dependencies:
+  # Core Python
+  - python=3.11
+  - pip
+
+  # PyTorch stack
+  - pytorch
+  - torchvision
+  - torchaudio
+
+  # Scientific computing
+  - numpy
+  - pandas
+  - xarray
+  - dask
+
+  # Geospatial stack
+  - geopandas
+  - rasterio
+  - pyproj
+  - shapely
+  - pillow
+
+  # Visualization
+  - matplotlib
+
+  # Utilities
+  - pyyaml
+  - pympler
+
+  # Jupyter support
+  - notebook
+  - ipykernel
+
+  # Tkinter GUI support
+  - tk
+
+  # Install remaining packages with pip
+  - pip:
+      - terratorch
+      - pystac-client
+      - planetary-computer
+      - odc-stac
+

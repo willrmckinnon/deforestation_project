@@ -1,5 +1,5 @@
 from utils import helper
-from data.load_planetary_comp_data import get_observation_no_clouds
+from data.load_observation import standard_observation
 from datetime import datetime
 
 
@@ -31,6 +31,7 @@ def main():
     #Setup the DATETIME based on whether input is given | If no input argument is given, start with today
     target_date = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else datetime.now().date()
 
+
     #Setup the square area to be covered
     target_width = 1000 * ((args.sqkm/0.9540802499563914)**(0.5))
 
@@ -48,11 +49,11 @@ def main():
     #----------------------------------------------
     #Fetch Observation
     print("Started - Fetching Data")
-    obs = get_observation_no_clouds(aoi, target_date, max_attempts=6, max_cloud_threshold=70)
+    obs = standard_observation(aoi, target_date, max_cloud_threshold=30)
 
     #Set the bands and stitch together the xarrays for the total observed area
     bands = ['B02', 'B03','B04']
-    img, _ = obs.stack_obs(bands)
+    img, _ = obs.stack(bands)
 
 
     #----------------------------------------------
