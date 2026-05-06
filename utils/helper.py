@@ -46,37 +46,6 @@ def point_to_polygon(lat, lon, dim=4000):
     return Polygon(coords)
 
 
-#Converts a set of polygons to a PIL Image Overlay
-def polygons_to_overlay(polygons, shape, transform):
-    """
-    Returns an RGBA image with polygons drawn on transparent background
-    """
-    height, width = shape[0], shape[1]
-
-    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    inv_transform = ~transform
-
-    def geo_to_pixel(x, y):
-        col, row = inv_transform * (x, y)
-        col = max(0, min(width - 1, col))
-        row = max(0, min(height - 1, row))
-        return((col, row))
-
-    for poly in polygons:
-        if poly.is_empty:
-            continue
-
-        #Convert the polygon outline to pixels
-        coords = [geo_to_pixel(x, y) for x, y in poly.exterior.coords]
-
-        #Draw those pixels to the overlay
-        draw.polygon(coords, outline=(255, 0, 0, 255), fill=(255, 0, 0, 80))
-
-    return overlay
-
-
 #Simple function to convert a normalize a muliband nparray or xarray for display
 def normalize_per_band(img, saturation = 5, xarraybands=["B02", "B03", "B04"]):
     def normalize_nparray(img, saturation):
@@ -146,15 +115,22 @@ def disp_image(img, xarraybands=["B02", "B03", "B04"]):
 
     def xx_image(image, xarraybands):   
         #Convert to an nparray and then display
-        rgb = (
-            image[xarraybands]
-            .to_array()
-            .isel(time=0)
-            .transpose("y", "x", "variable")
-            .values
-        )
+        if 'time' in image.dims:            
+            rgb = (
+                image[xarraybands]
+                .to_array()
+                .isel(time=0)
+                .transpose("y", "x", "variable")
+                .values
+            )
+        else:
+            rgb = (
+                image[xarraybands]
+                .to_array()
+                .transpose("y", "x", "variable")
+                .values
+            )
         nparray_image(rgb)
-
 
     img_type = str(type(img)).split('.')[-1].split('\'')[0]
     if img_type == 'Image': pil_image(img)

@@ -62,7 +62,9 @@ class ObservedArea:
 
             return list(latest_items.values())
 
+        #Iterate the search with increasing cloud threshold until enough area is covered
         for clouds in range(min_cloud_threshold, self.cloud_threshold+1, 10):
+            items = None
             search = self.catalog.search(
                 collections=self.collection,
                 intersects=mapping(self.aoi),
@@ -73,32 +75,41 @@ class ObservedArea:
             )
             items = search.get_all_items()
 
+
+
             if len(items) > 0:
                 self.items = filter_items(items)
-                self.cloud_cover = clouds
-                break
+                if self.get_coverage() > 0.9:
+                    self.cloud_cover = clouds
+                    break
             elif clouds >= self.cloud_threshold-9:
                 self.items = None
                 self.cloud_cover = self.clouds
         
+
+    def get_coverage(self):
+        aoi_area = helper.get_wgs_area(self.aoi)
+
+        geom_list = []
+        for item in self.items:
+            geom_list.append(shape(item.geometry))
+
+        difference = self.aoi - unary_union(geom_list)
+        diff_area = helper.get_wgs_area(difference)
+        
+        coverage = (aoi_area - diff_area) / aoi_area
+        return coverage
+
+
+
 
     #Check to print the observation characteristics
     def check(self):
         #---------------------------------------------------
         #Check that the total area is covered 
         #---------------------------------------------------
+        coverage = self.get_coverage()
 
-        covered_area = 0
-        aoi_area = helper.get_wgs_area(self.aoi)
-
-        for item in self.items:
-            geom = shape(item.geometry)
-
-            inter = geom.intersection(self.aoi)
-            if not inter.is_empty:
-                covered_area += helper.get_wgs_area(inter)
-
-        coverage = covered_area / aoi_area
 
         #---------------------------------------------------
         #Calculate first and last date 
@@ -141,7 +152,7 @@ class ObservedArea:
             .transpose("y", "x", "variable")
             .values
         )
-        print('here')
+
         return image_array, xx
 
 
