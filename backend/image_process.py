@@ -21,6 +21,7 @@ def get_args():
 
 
 def main():
+    print('PROCESS_STARTED', flush=True)
     args = get_args()
     config = helper.load_config()
 
@@ -48,7 +49,7 @@ def main():
     # Get the Observation
     #----------------------------------------------
     #Fetch Observation
-    print("Started - Fetching Data")
+    print("Started - Fetching Data", flush=True)
     obs = standard_observation(aoi, target_date, max_cloud_threshold=30)
 
     #Set the bands and stitch together the xarrays for the total observed area
@@ -59,7 +60,7 @@ def main():
     #----------------------------------------------
     # Display the result
     #----------------------------------------------
-    print("Displaying Image")
+    print("Displaying Image", flush=True)
     rgb = helper.normalize_per_band(img, saturation=7)
 
     helper.disp_image(rgb)

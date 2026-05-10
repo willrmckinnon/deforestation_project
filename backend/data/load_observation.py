@@ -135,14 +135,14 @@ class ObservedArea:
             signed_items.append(planetary_computer.sign(item))
         
         #collect the xarray
-        with dask.diagnostics.ProgressBar():
-            xx = odc.stac.load(
-                signed_items,
-                bands = bands,
-                geopolygon=self.aoi,
-                resampling = 'bilinear',
-                chunks = {'x': 512, 'y': 512}
-            )
+        #with dask.diagnostics.ProgressBar():
+        xx = odc.stac.load(
+            signed_items,
+            bands = bands,
+            geopolygon=self.aoi,
+            resampling = 'bilinear',
+            chunks = {'x': 512, 'y': 512}
+        )
         print(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB', flush = True)
 
         image_array = (
@@ -185,7 +185,7 @@ def standard_observation(aoi, target_date: datetime.date, max_cloud_threshold = 
     start_day = str(target_date) 
     end_day = str(target_date - timedelta(days=delay))
     date_window = end_day + '/' + start_day #Configure in a format for retrieval
-    print(f'Attempting Observation - {date_window}', end = '\r', flush=True)
+    print(f'Attempting Observation - {date_window}', flush=True)
 
 
     # ---------------------------

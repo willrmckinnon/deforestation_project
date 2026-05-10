@@ -10,7 +10,7 @@ import geopandas as gpd
 
 import xarray
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 #Reads the config file
@@ -84,6 +84,7 @@ def normalize_per_band(img, saturation = 5, xarraybands=["B02", "B03", "B04"]):
 
 
 #Complex function to make an image out of Image, Xarray or NParray
+'''
 def disp_image(img, xarraybands=["B02", "B03", "B04"]):
     def pil_image(image):
         #Display if the image type is a pilllow image
@@ -137,7 +138,7 @@ def disp_image(img, xarraybands=["B02", "B03", "B04"]):
     elif img_type == 'ndarray': nparray_image(img)
     elif img_type == 'Dataset': xx_image(img, xarraybands=["B02", "B03", "B04"])
     else: raise RuntimeError('Cannot produce image - invalid data type - simple_image() requires Pillow Image, xarray or np.array')
-
+'''
 
 #Simple function to return the area of a polygon that is in WGS coordinates
 def get_wgs_area(poly):
