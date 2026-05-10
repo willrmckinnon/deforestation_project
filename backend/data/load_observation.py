@@ -41,6 +41,7 @@ class ObservedArea:
         self.cloud_threshold = cloud_threshold
         self.collection = collection
         self.catalog = catalog
+        self.observation_report = None
 
 
         self.get_items()
@@ -121,7 +122,10 @@ class ObservedArea:
         last = max(dates)
         latest_date = f'{last.year}-{last.month}-{last.day}'        
         
-        print(f'{self.cloud_cover}% Cloud Cover: {len(self.items)} item(s) collected with {100*coverage:.2f}% of AOI covered -- Collected between {earliest_date} and {latest_date}', flush = True )
+        self.observation_report = f'{self.cloud_cover}% Cloud Cover: {len(self.items)} item(s) collected with {100*coverage:.2f}% of AOI covered -- Collected between {earliest_date} and {latest_date}'
+
+        print(self.observation_report, flush = True )
+
 
     
 

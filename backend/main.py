@@ -76,7 +76,7 @@ async def websocket_endpoint(websocket:WebSocket):
         # Display the result
         #----------------------------------------------
         await logger("Displaying Image")
-        rgb = helper.npy_to_img2(img, saturation=1)
+        rgb = helper.npy_to_img(img)
 
 
         #Format image for return
@@ -89,6 +89,8 @@ async def websocket_endpoint(websocket:WebSocket):
             "type": "image",
             "data": rgb_encoded
         })
+
+        await logger(obs.observation_report)
 
 
 

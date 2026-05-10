@@ -163,27 +163,7 @@ def xarray_to_img(xr):
     return Image.fromarray(rgb_uint8)
 
 #Function to convert np array into a PIL Image
-def npy_to_img(img, saturation = 5):
-    img = img.astype(np.float32)
-    norm = np.zeros_like(img, dtype=np.float32)
-
-    for b in range(img.shape[-1]):
-        band = img[:, :, b]
-
-        low = np.percentile(band,2)
-        high = np.percentile(band, 98)
-
-        norm[:, :, b] = (band - low) / (high - low)
-
-    #Saturate and normalize
-    sat = np.clip(norm * saturation, 0, 1)
-    norm_sat = (sat * 255).astype(np.uint8)
-
-    
-    return Image.fromarray(norm_sat)
-
-
-def npy_to_img2(img, saturation = 5):
+def npy_to_img(img, saturation = 1):
     rgb = img[:,:,[2, 1, 0]].astype(np.float32)
 
     low = np.percentile(rgb,2)

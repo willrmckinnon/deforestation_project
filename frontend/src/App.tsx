@@ -148,7 +148,7 @@ function App() {
           style={{ maxWidth: '75%', maxHeight: '75%'}}
         />
 
-        <pre style={{ color: 'white' , padding: '0'}}>
+        <pre style={{ color: 'white' , padding: '0', fontSize: '0.7rem'}}>
           {logMessage}
         </pre>
 
