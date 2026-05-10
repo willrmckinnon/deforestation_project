@@ -6,11 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.websockets import WebSocketDisconnect
 
 import asyncio
+from datetime import datetime
+
+#For the image printing
+from PIL import Image
+import io
+import base64
+import numpy as np
+
+
 
 
 app = FastAPI()
-#PROCESS_FILE = 'image_process.py'
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 #Set the Correct base directory to reference the other folders
 env = os.environ.copy()
@@ -19,7 +26,6 @@ env["PYTHONUNBUFFERED"] = "1"
 #Import the packages
 from utils import helper
 from data.load_observation import standard_observation
-from datetime import datetime
 
 
 
@@ -29,8 +35,8 @@ async def websocket_endpoint(websocket:WebSocket):
     
     async def logger(message):
         await websocket.send_json({
-                'type': 'log',
-                'message': message
+                'type': 'message',
+                'data': message
                 })
         await asyncio.sleep(0.5)
 
@@ -70,9 +76,20 @@ async def websocket_endpoint(websocket:WebSocket):
         # Display the result
         #----------------------------------------------
         await logger("Displaying Image")
-        rgb = helper.normalize_per_band(img, saturation=7)
+        rgb = helper.npy_to_img2(img, saturation=1)
 
-        #helper.disp_image(rgb)
+
+        #Format image for return
+        buffer = io.BytesIO() #Creating a local space to save the image
+        rgb.save(buffer, format="PNG")
+        rgb_encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+        #Send image back to app
+        await websocket.send_json({
+            "type": "image",
+            "data": rgb_encoded
+        })
+
 
 
 

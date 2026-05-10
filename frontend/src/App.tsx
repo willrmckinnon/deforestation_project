@@ -5,6 +5,7 @@ function App() {
   const [input2, setInput2] = useState('-77.014889')
   const [input3, setInput3] = useState('100')
   const [logMessage, setLogMessage] = useState('Execute the process to see results')
+  const [imageSrc, setImageSrc] = useState('')
 
 
   const [socket, setSocket] = useState<WebSocket | null>(null)
@@ -19,9 +20,15 @@ function App() {
     }
 
     ws.onmessage = (event) => {
-      console.log("RAW:", event.data)
       const data = JSON.parse(event.data)
-      setLogMessage(data.message)
+
+      if (data.type === 'image') {
+        setImageSrc(`data:image/png;base64,${data.data}`)
+      }
+
+      if (data.type === 'message') {
+        setLogMessage(data.data)
+      }
     }
 
     ws.onerror = (error) => {
@@ -126,18 +133,25 @@ function App() {
       <div
         style={{
           width: '100%',
-          height: '95%',
+          height: '95vh',
           backgroundColor: '#111',
           border: '1px solid #333',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'auto'
         }}
       >
-        <pre style={{ color: 'white' }}>
+        <img
+          src={imageSrc}
+          style={{ maxWidth: '75%', maxHeight: '75%'}}
+        />
+
+        <pre style={{ color: 'white' , padding: '0'}}>
           {logMessage}
         </pre>
+
       
       </div>
     </div>
