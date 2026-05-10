@@ -32,6 +32,7 @@ class ObservedArea:
             aoi, 
             date_window, 
             catalog,
+            logger,
             cloud_threshold = 100, 
             collection = ['sentinel-2-l2a']
             ):
@@ -42,6 +43,8 @@ class ObservedArea:
         self.collection = collection
         self.catalog = catalog
         self.observation_report = None
+        self.logger = logger
+
 
 
         self.get_items()
@@ -124,7 +127,7 @@ class ObservedArea:
         
         self.observation_report = f'{self.cloud_cover}% Cloud Cover: {len(self.items)} item(s) collected with {100*coverage:.2f}% of AOI covered -- Collected between {earliest_date} and {latest_date}'
 
-        print(self.observation_report, flush = True )
+        self.logger(self.observation_report)
 
 
     
@@ -147,7 +150,7 @@ class ObservedArea:
             resampling = 'bilinear',
             chunks = {'x': 512, 'y': 512}
         )
-        print(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB', flush = True)
+        self.logger(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB')
 
         image_array = (
             xx
@@ -162,7 +165,7 @@ class ObservedArea:
 
 
 #Function to return an observation without clouds closest to target date
-def standard_observation(aoi, target_date: datetime.date, max_cloud_threshold = 50):
+def standard_observation(aoi, target_date: datetime.date, logger, max_cloud_threshold = 50):
     
     # ---------------------------
     # Setup the Client
@@ -189,14 +192,15 @@ def standard_observation(aoi, target_date: datetime.date, max_cloud_threshold = 
     start_day = str(target_date) 
     end_day = str(target_date - timedelta(days=delay))
     date_window = end_day + '/' + start_day #Configure in a format for retrieval
-    print(f'Attempting Observation - {date_window}', flush=True)
+    msg = f'Attempting Observation - {date_window}'
+    logger(msg)
 
 
     # ---------------------------
     # Get the observation
     # ---------------------------
     warnings.filterwarnings("ignore")
-    obs =ObservedArea(aoi, date_window, catalog, cloud_threshold = max_cloud_threshold)
+    obs =ObservedArea(aoi, date_window, catalog, logger, cloud_threshold = max_cloud_threshold)
 
     return obs
 

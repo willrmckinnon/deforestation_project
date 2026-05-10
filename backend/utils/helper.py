@@ -178,6 +178,3 @@ def npy_to_img(img, saturation = 1):
     
     return Image.fromarray(norm_sat)
 
-
-
-
