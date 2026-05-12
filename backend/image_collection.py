@@ -44,7 +44,7 @@ def main(lat, lon, sqkm, logger, date = None):
     obs = standard_observation(aoi, target_date, logger, max_cloud_threshold=30)
 
     #Set the bands and stitch together the xarrays for the total observed area
-    bands = ['B02', 'B03','B04']
+    bands = ['B02', 'B03', 'B04']
     img, _ = obs.stack(bands)
 
 
@@ -64,7 +64,7 @@ def main(lat, lon, sqkm, logger, date = None):
     logger(rgb_encoded, 'image')
 
     logger(obs.observation_report)
-
+    return obs
 
 
 
