@@ -1,4 +1,5 @@
 import yaml
+from datetime import datetime
 
 from shapely.geometry import box, Polygon
 from pyproj import Transformer
@@ -11,6 +12,8 @@ import geopandas as gpd
 import xarray
 import numpy as np
 #import matplotlib.pyplot as plt
+
+from data.load_observation import standard_observation
 
 
 #Reads the config file
@@ -177,4 +180,46 @@ def npy_to_img(img, saturation = 1):
 
     
     return Image.fromarray(norm_sat)
+
+
+#Function to return a basic/sample image
+def sample_observation(
+        lat = 32.4343,
+        lon = -97.8286,
+        bands = ['B02', 'B03', 'B04'],
+        sqkm = 100,
+        logger = print,
+        date = None
+    ):
+
+    #Setup the DATETIME based on whether input is given | If no input argument is given, start with today
+    target_date = datetime.strptime(date, "%Y-%m-%d").date() if date else datetime.now().date()
+    
+    #Setup the AOI
+    target_width = 1000 * ((sqkm/0.9540802499563914)**(0.5))
+    aoi = point_to_polygon(lat, lon, dim = target_width)
+
+    #Fetch Observation
+    logger("Started - Fetching Data")
+    obs = standard_observation(aoi, target_date, logger, max_cloud_threshold=30)
+
+    #Set the bands and stitch together the xarrays for the total observed area
+    data, _ = obs.stack(bands)
+
+    #transpose and normalize
+    rgb = data[:,:,[2,1,0]]
+    low = np.percentile(rgb,2)
+    high = np.percentile(rgb, 98)
+    rgb = (rgb-low)/(high - low)
+    clp = np.clip(rgb, 0, 1)
+    img = (clp * 255).astype(np.uint8)
+
+    image = Image.fromarray(img)
+
+    return rgb, image
+
+
+
+
+
 
