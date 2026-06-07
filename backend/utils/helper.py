@@ -13,7 +13,7 @@ import xarray
 import numpy as np
 #import matplotlib.pyplot as plt
 
-from data.load_observation import standard_observation
+from backend.data.load_observation import standard_observation
 
 
 #Reads the config file
@@ -216,9 +216,21 @@ def sample_observation(
 
     image = Image.fromarray(img)
 
-    return rgb, image
+    return data, image
 
 
+#Crops input data to the nearest multiple of 32 for model handling
+#INPUT: requires a (BxHxW) shapped numpy array
+def crop32(data):
+    h_rem = data.shape[1] % 32
+    w_rem = data.shape[2] % 32
+    h = data.shape[1] - h_rem
+    w = data.shape[2] - w_rem
+    h_s = round(h_rem/2)
+    w_s = round(w_rem/2)
+
+    cropped_data = data[:, h_s:h_s+h, w_s:w_s+w]
+    return cropped_data
 
 
 

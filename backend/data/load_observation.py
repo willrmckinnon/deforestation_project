@@ -17,7 +17,7 @@ from pympler.asizeof import asizeof
 
 from collections import defaultdict
 
-from utils import helper
+from backend.utils import helper
 
 #Retry libs
 from urllib3 import Retry
