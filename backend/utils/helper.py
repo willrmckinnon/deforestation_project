@@ -1,8 +1,9 @@
 import yaml
 from datetime import datetime
 
+from shapely.ops import transform
 from shapely.geometry import box, Polygon
-from pyproj import Transformer
+from pyproj import CRS,Transformer
 
 from PIL import Image, ImageDraw, ImageTk
 import tkinter as tk
@@ -22,6 +23,28 @@ def load_config():
         config = yaml.safe_load(f)
     return config
 
+#converts a point to a bbox
+def point_to_bbox(lat, lon, sqkm):
+    # Set the correct utm based on northern or southern lon
+    utm_zone = int((lon + 180) / 6) + 1
+    epsg = (32600 + utm_zone  if lat >= 0 else 32700 + utm_zone)
+
+    # Set the CRS
+    wgs84 = CRS.from_epsg(4326)
+    utm = CRS.from_epsg(epsg)
+
+    # Set the Transforms
+    to_utm = Transformer.from_crs(wgs84, utm, always_xy=True)
+    to_wgs = Transformer.from_crs(utm, wgs84, always_xy=True)
+
+    x, y = to_utm.transform(lon, lat)
+    target_width = 1000 * ((sqkm/0.9540802499563914)**(0.5))
+    half_size = target_width/2
+
+    square = box(x-half_size, y-half_size, x+half_size, y+half_size)
+    bbox = transform(to_wgs.transform, square)
+
+    return bbox
 
 #converts a point to a polygon
 def point_to_polygon(lat, lon, dim=4000):
@@ -32,9 +55,8 @@ def point_to_polygon(lat, lon, dim=4000):
     # convert center point to meters
     x, y = to_m.transform(lon, lat)
 
-    half_size = dim/2 
-
     # create square in meters
+    half_size = dim/2
     square = box(
         x - half_size, y - half_size,
         x + half_size, y + half_size

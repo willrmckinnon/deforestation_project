@@ -7,15 +7,13 @@ from backend.models.utils.display import sentinel_worldcover_image_and_mask_disp
 import numpy as np
 
 
-def forest_investigation(
-        model_checkpoint_path
-        ):
+def forest_investigation(model_checkpoint_path):
     
     # Setup the model
     model = Model(checkpoint_path = model_checkpoint_path)
 
     # Collect the data
-    data, image = sample_observation(bands = model.bands)
+    data, image = sample_observation(lat = -12.680635, lon=-69.365719, bands = model.bands)
     data = np.transpose(data, (2, 0, 1))
     cropped_data = crop32(data)
 

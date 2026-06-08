@@ -1,9 +1,9 @@
-from pystac_client import Client
 import numpy as np
 from datetime import datetime, timedelta
 import time
 import warnings
 
+from pystac_client import Client
 import planetary_computer
 import rasterio
 from rasterio import windows, features, warp
@@ -88,7 +88,7 @@ class ObservedArea:
                     break
             elif clouds >= self.cloud_threshold-9:
                 self.items = None
-                self.cloud_cover = self.clouds
+                self.cloud_cover = clouds
         
 
     def get_coverage(self):
