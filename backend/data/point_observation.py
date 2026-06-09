@@ -31,7 +31,7 @@ class ObservedArea:
             catalog,
             logger,
             collection = ['sentinel-2-l2a'],
-            cloud_cover = 10
+            cloud_cover = 30
             ):
         
         self.aoi = aoi
@@ -39,7 +39,7 @@ class ObservedArea:
         self.collection = collection
         self.catalog = catalog
         self.logger = logger
-
+        self.items = []
 
         # ---------------------------
         # Iteratively attempt to collect with an increasing date window
@@ -54,19 +54,29 @@ class ObservedArea:
             if self.get_items(date_window, cloud_cover): break
 
 
+
+
     #Function to collect the items associated with that area during that time
     def get_items(self, date_window, cloud_cover):
+
         #Selects only the most recent item from each MGRS tile
         def filter_items(items):
-            latest_items = {}
+            #filter out those with clouds over AOI
+            cloudless_items = []
             for item in items:
+                scl = self.stack(['SCL'],[item])[0]
+                cloud_mask = np.isin(scl, [1, 3, 7, 8, 9, 10,11]).astype('int64')
+                cloud_fraction = cloud_mask.mean()
+                if cloud_fraction < 0.1: cloudless_items.append(item)
+            #Only take the most recent item of each MGRS grid
+            latest_items = {}
+            for item in cloudless_items:
                 # Get the Grid
                 tile_id = item.properties.get("s2:mgrs_tile")
-                
                 if tile_id and tile_id not in latest_items:
                     latest_items[tile_id] = item
-
             return list(latest_items.values())
+        
         #Confirms if the items cover the observation AOI
         def confirm_coverage(items):
             item_geoms = [shape(item.geometry) for item in items]
@@ -89,9 +99,10 @@ class ObservedArea:
             max_items = 10
         )
         items = search.get_all_items()
+        items = filter_items(items)
 
         if len(items) >= 0 and confirm_coverage(items): 
-            self.items = filter_items(items)
+            self.items = items
             return True
         else: return False
 
@@ -103,11 +114,11 @@ class ObservedArea:
 
     #Method to stack specified bands of the observation's items
     #RETURNS: Numpy Array and X Array
-    def stack(self, bands):
-
+    def stack(self, bands, items = None):
+        if items == None: items = self.items
         #Sign the items
         signed_items = []
-        for item in self.items: signed_items.append(planetary_computer.sign(item))
+        for item in items: signed_items.append(planetary_computer.sign(item))
         
         #collect the xarray
         xx = odc.stac.load(
@@ -117,11 +128,11 @@ class ObservedArea:
             resampling = 'bilinear',
             chunks = {'x': 512, 'y': 512}
         )
-        self.logger(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB')
-
+        #self.logger(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB')
+        xx = xx[bands].median(dim="time")
         image_array = (
             xx
-            .isel(time=0)[bands]
+#            .isel(time=0)[bands]
             .to_array()
             .transpose("y", "x", "variable")
             .values
@@ -136,7 +147,7 @@ class ObservedArea:
         #Per band normalization
         rgb_scaled = rgb.copy()
         for i in range(rgb.shape[2]):
-            band_max = 0.2 * rgb[:,:,i].max()
+            band_max = 0.7 * rgb[:,:,i].max()
             rgb_scaled[:,:,i] = np.clip((rgb_scaled[:,:,i] / band_max), 0, 1)
         rgb_uint8 = (rgb_scaled * 255).astype(np.uint8)
 
@@ -176,7 +187,7 @@ def collect_observation(lat, lon, sqkm, target_date: datetime.date, windows = [4
     # Get the observation
     # ---------------------------
     warnings.filterwarnings("ignore")
-    obs =ObservedArea(aoi, target_date, windows, catalog, logger)
+    obs = ObservedArea(aoi, target_date, windows, catalog, logger)
 
     return obs
 
