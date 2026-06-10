@@ -1,5 +1,5 @@
 # Custom Functions
-from backend.utils.helper import point_to_bbox
+from backend.utils.helper import point_to_bbox, crop32
 
 # Basic Libraries
 import warnings
@@ -40,6 +40,8 @@ class ObservedArea:
         self.catalog = catalog
         self.logger = logger
         self.items = []
+        self.date = None
+        self.masks = {}
 
         # ---------------------------
         # Iteratively attempt to collect with an increasing date window
@@ -85,7 +87,16 @@ class ObservedArea:
             self.coverage = intersection.area / self.aoi.area
 
             if self.coverage > 0.9: return True
-            else: return False       
+            else: return False
+
+        # Sets the date for the observation
+        # If observation contains items from multiple dates, will select the oldest date (first date)
+        def set_date():
+            dates = []
+            for item in self.items:
+                date_str = item.properties['datetime'][:10]
+                dates.append(datetime.strptime(date_str,'%Y-%m-%d'))
+            self.date = min(dates).date()       
 
         #---------------------------------------------
         #Search
@@ -103,6 +114,7 @@ class ObservedArea:
 
         if len(items) >= 0 and confirm_coverage(items): 
             self.items = items
+            set_date()
             return True
         else: return False
 
@@ -160,6 +172,27 @@ class ObservedArea:
         visual_href = signed_item.assets["visual"].href
         img = rxr.open_rasterio(visual_href)
         return img
+        
+    # Provided a model, creates the mask for the observation 
+    def inference(self, model, type):
+        '''
+        Mehod designed specifically for a model with the following characteristics
+        - Model contains .bands <list> attribute that lists the various sentinel bands required as input
+        - Model requires input height and width to be in multiples of 32
+        - Model is designed to receive input in (B x H x W) shape
+        '''
+        # Setup the data
+        bands = model.bands
+        data = self.stack(bands)[0]
+        data = np.transpose(data, (2,0,1))
+        data = crop32(data)
+
+        # Inference
+        self.masks[type] = {
+            'mask': model.inference(data),
+            'metadata': model.mask_tag
+        }
+
 
 
 

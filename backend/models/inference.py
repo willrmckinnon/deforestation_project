@@ -53,7 +53,9 @@ class Model():
 
          # Setup Basics
         self.device = device
+        self.mask_tag = {}
         self.checkpoint_path = checkpoint_path
+        self.mask_tag['model_used'] = self.checkpoint_path
 
         # Load Checkpoint
         self.checkpoint = torch.load(checkpoint_path, map_location = self.device)
@@ -64,14 +66,20 @@ class Model():
             self.out_channels = self.checkpoint['out_channels']
         else: raise Exception("Checkpoint is missing in_channels and out_channels metadata")
 
-        if self.checkpoint['bands']: self.bands = self.checkpoint['bands']
+        if self.checkpoint['bands']: 
+            self.bands = self.checkpoint['bands']
+            self.mask_tag['bands_used'] = self.bands
         else: raise Exception("Checkpoint metadata is missing band specifications")
 
         if self.checkpoint['NanChannel']: self.Nan_Channel = self.checkpoint['NanChannel']
         else: self.Nan_Channel = False
 
-        if self.checkpoint['label_map']: self.label_map = self.checkpoint['label_map']
-        if self.checkpoint['wc_code_map']: self.wc_code_map = self.checkpoint['wc_code_map']
+        if self.checkpoint['label_map']: 
+            self.label_map = self.checkpoint['label_map']
+            self.mask_tag['label_map'] = self.label_map
+        if self.checkpoint['wc_code_map']: 
+            self.wc_code_map = self.checkpoint['wc_code_map']
+            self.mask_tag['wc_code_map'] = self.wc_code_map
 
 
 
