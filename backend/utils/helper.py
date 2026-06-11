@@ -1,6 +1,7 @@
 import yaml
 from datetime import datetime
 
+from rasterio.transform import Affine
 from shapely.ops import transform
 from shapely.geometry import box, Polygon
 from pyproj import CRS,Transformer
@@ -243,7 +244,7 @@ def sample_observation(
 
 #Crops input data to the nearest multiple of 32 for model handling
 #INPUT: requires a (BxHxW) shapped numpy array
-def crop32(data):
+def crop32(data, transform = None):
     h_rem = data.shape[1] % 32
     w_rem = data.shape[2] % 32
     h = data.shape[1] - h_rem
@@ -252,7 +253,12 @@ def crop32(data):
     w_s = round(w_rem/2)
 
     cropped_data = data[:, h_s:h_s+h, w_s:w_s+w]
-    return cropped_data
+
+    if transform: 
+        cropped_transform = (transform * Affine.translation(w_s, h_s))
+        return cropped_data, cropped_transform
+    else:
+        return cropped_data
 
 
 

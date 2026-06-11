@@ -1,80 +1,110 @@
 # Custom Imports
-from backend.data import point_observation
-from backend.models.inference import Model
-from backend.utils.helper import crop32
-from backend.models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
+from backend.investigation_class import Investigation
 
 # Library Imports
-from datetime import datetime, timedelta
+import numpy as np
+from rasterio.features import shapes
+from scipy.ndimage import binary_opening
+from shapely.geometry import shape, MultiPolygon
 
 
-def multi_observations(lat, lon, sqkm, target_date, observation_increments):
-    observations = []
 
-    initial_obs = point_observation.collect_observation(lat, lon, sqkm, target_date, windows = [45, 60, 90, 360])
-    if initial_obs.items == []: 
-        print('Could not collect sufficient cloudless items of given location')
-        return None
-    
-    # Get the oldest date from the observation to use as the new benchmark
-    first_year_date = initial_obs.date
-    print('Collected the initial observation')
-    observations.append(initial_obs)
-
-    # Collect all following observations
-    for year in observation_increments:
-        new_target_date = first_year_date - timedelta(days = 365*year)
-        new_obs = point_observation.collect_observation(lat, lon, sqkm, new_target_date, windows = [45, 90, 180])
-        new_year_date = new_obs.date 
-        observations.append(new_obs)
-        print(f'Collected the observation {year} year(s) before the initial observation')
-    print('Completed observations for given areas')
-
-    return observations  
+class ForestInvestigation(Investigation):
+    def __init__(self,
+                lat, lon,
+                sqkm,
+                model_path,
+                observation_increments = [1, 3, 5], #Years back to search
+                logger = print
+                ):
         
- 
-    #------------------------------------------------------------------------------------------------
-    #---------Main-Function--------------------------------------------------------------------------
-    #------------------------------------------------------------------------------------------------
-
-
-def forest_investigation(
-        lat, lon,
-        sqkm,
-        model_checkpoint_path,
-        observation_increments = [1, 3, 5]
-        ):
-    
-    #------------------------------------------------
-    #---------Collect-the-Observations---------------
-    #------------------------------------------------
-    target_date = datetime.now().date() 
-    observations = multi_observations(lat, lon, sqkm, target_date, observation_increments)
-
-
-
-    #------------------------------------------------
-    #---------Inference-the-Model--------------------
-    #------------------------------------------------
-
-    # Setup the model
-    model = Model(checkpoint_path = model_checkpoint_path)
-
-    # Inference Each observation
-    for obs in observations:
-        obs.inference(model, 'tropical_forest')
-
-    return observations
-
+        model_tag = 'forest'
+        models_to_inference = {model_tag: model_path}
+        super().__init__(lat, lon, sqkm, models_to_inference, observation_increments, logger)
         
-'''
-    # Display the results
-    if model.label_map and model.wc_code_map:
-        wc_display(cropped_data, mask, 
-            label_map=model.label_map, 
-            wc_code_map=model.wc_code_map)
-    else: wc_display(cropped_data, mask)
-'''
+        self.analyze_vegetation_change(model_tag)
+
+
+
+
+    def analyze_vegetation_change(self, forest_model_tag, filter_width = 3):
+        # Double check that there are enough observations to conduct a change analysis
+        if len(self.observations) < 2:
+            self.logger('No historical increments provided to analyze')
+            return
+        
+        change_log_rows = []
+        for i in range(len(self.observations)-1):
+            for j in range(i+1,len(self.observations)):
+                obs1 = self.observations[i]
+                obs2 = self.observations[j]
+                mask1 = obs1.masks[forest_model_tag]
+                mask2 = obs2.masks[forest_model_tag]
+
+                # Determine the key values that indicate a forest pixel
+                forest_label_names = ['forest', 'Tree-cover', 'trees']
+                keys = []    
+                for key, value in mask1['metadata']['label_map'].items():
+                    if value in forest_label_names: keys.append(key)
+
+                # Calculate where forest pixels have changed
+                mask1_veg = np.where(np.isin(mask1['mask'],keys), 1, 0)
+                mask2_veg = np.where(np.isin(mask2['mask'],keys), 1, 0)
+                change = mask2_veg - mask1_veg
+
+                # Filter out areas that are thinner than 20m at any point
+                loss_change = binary_opening((change ==1), structure = np.ones((filter_width,filter_width)))
+                growth_change = binary_opening((change ==-1), structure = np.ones((filter_width,filter_width)))
+
+                compiled_change = np.zeros(change.shape)
+                compiled_change[loss_change] = 1
+                compiled_change[growth_change] = -1
+
+                # Generate multipolygon shapes for changes
+                transform = mask1['metadata']['transform']
+                veg_loss_geoms = shapes(loss_change.astype("uint8"), transform=transform)
+                veg_growth_geoms = shapes(growth_change.astype("uint8"), transform=transform)
+
+                veg_loss_polygons = [shape(geom) for geom, val in veg_loss_geoms]
+                veg_growth_polygons = [shape(geom) for geom, val in veg_growth_geoms]
+
+                veg_loss_multipoly = MultiPolygon(veg_loss_polygons)
+                veg_growth_multipoly = MultiPolygon(veg_growth_polygons)
+
+                # Calculate percentage changes
+                start_pix = mask2_veg.sum()
+                end_pix = mask1_veg.sum()
+                percent_change = round(100*(end_pix/start_pix), 2)
+
+
+                change_log = {
+                    'older_observation_date': obs2.date,
+                    'newer_observation_date': obs1.date,
+                    'older_observation': obs2,
+                    'newer_observation': obs1,
+                    'veg_loss_area': veg_loss_multipoly.area,
+                    'veg_growth_area': veg_growth_multipoly.area,
+                    'percent_veg_change': percent_change,
+                    'veg_loss_pixels': loss_change.sum(),
+                    'no_veg_change_pixels': (compiled_change == 0).sum(),
+                    'veg_growth_pixels': growth_change.sum(),
+                    'change_mask': compiled_change,
+                    'veg_growth_multipolygons': veg_growth_multipoly,
+                    'veg_loss_multipolygons': veg_loss_multipoly
+                }
+                change_log_rows.append(change_log)
+
+        self.veg_change_log = self.ChangeLog(
+            change_log_rows, 
+            geometry = 'veg_loss_multipolygons',
+            crs = self.observations[0].masks[forest_model_tag]['metadata']['crs']
+            )
+        
+    
+
+
+
+
 
 
 

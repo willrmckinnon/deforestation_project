@@ -1,12 +1,13 @@
 # Custom Functions
 from backend.utils.helper import point_to_bbox, crop32
+from backend.models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
 
 # Basic Libraries
 import warnings
 import odc.stac
 import numpy as np
 from PIL import Image
-import rioxarray as rxr
+import rioxarray as rio
 import planetary_computer
 import matplotlib.pyplot as plt
 from pystac_client import Client
@@ -29,7 +30,7 @@ class ObservedArea:
             target_date, 
             windows,
             catalog,
-            logger,
+            logger = print,
             collection = ['sentinel-2-l2a'],
             cloud_cover = 30
             ):
@@ -50,7 +51,7 @@ class ObservedArea:
             start_day = str(self.target_date) 
             end_day = str(self.target_date - timedelta(days=window))
             date_window = end_day + '/' + start_day #Configure in a format for retrieval
-            logger(f'Attempting Observation - {date_window}')
+            #logger(f'Attempting Observation - {date_window}')
 
             # Attempt the search
             if self.get_items(date_window, cloud_cover): break
@@ -115,6 +116,7 @@ class ObservedArea:
         if len(items) >= 0 and confirm_coverage(items): 
             self.items = items
             set_date()
+            self.logger(f'Observation collected on {self.date}')
             return True
         else: return False
 
@@ -144,7 +146,6 @@ class ObservedArea:
         xx = xx[bands].median(dim="time")
         image_array = (
             xx
-#            .isel(time=0)[bands]
             .to_array()
             .transpose("y", "x", "variable")
             .values
@@ -153,24 +154,51 @@ class ObservedArea:
         return image_array, xx
     
     #Method to quickly return the visual as a PIL image
-    def get_visual(self):
+    def get_image(self, saturation = 2):
+       
+        '''        
         rgb = self.stack(['B04', 'B03', 'B02'])[0]
+        rgb = np.transpose(rgb,(2,0,1))
+        rgb = crop32(rgb)
+        rgb = np.transpose(rgb,(1,2,0))
+
 
         #Per band normalization
         rgb_scaled = rgb.copy()
+        '''
+
+        data = self.stack(['B02','B03','B04'])[0]
+        data =crop32(np.transpose(data,(2,0,1)))
+        data = np.transpose(data,(1,2,0))
+        norm_data = np.zeros(data.shape)
+
+        for i in range(data.shape[2]):
+            band = data[:,:,i]
+            band = (band - band.min()) / (band.max() - band.min())
+            band = (255 * band).astype(np.uint8)
+            norm_data[:,:,i] = band
+        norm_data = norm_data[:,:,[2,1,0]]
+        norm_data = np.clip((norm_data * saturation),0,255).astype(np.uint8)
+
+
+        '''
+
+
         for i in range(rgb.shape[2]):
             band_max = 0.7 * rgb[:,:,i].max()
             rgb_scaled[:,:,i] = np.clip((rgb_scaled[:,:,i] / band_max), 0, 1)
-        rgb_uint8 = (rgb_scaled * 255).astype(np.uint8)
+        rgb_scaled = (rgb_scaled * 255).astype(np.uint8)
+        rgb_scaled = np.clip((rgb_scaled * saturation), 0, 255)
+        '''
 
         # Image creation
-        return Image.fromarray(rgb_uint8)
+        return Image.fromarray(norm_data)
 
     # Returns the entire tile image for analysis
     def get_whole_item(self, ind):
         signed_item = planetary_computer.sign(self.items[ind])
         visual_href = signed_item.assets["visual"].href
-        img = rxr.open_rasterio(visual_href)
+        img = rio.open_rasterio(visual_href)
         return img
         
     # Provided a model, creates the mask for the observation 
@@ -183,15 +211,30 @@ class ObservedArea:
         '''
         # Setup the data
         bands = model.bands
-        data = self.stack(bands)[0]
+        data, xx = self.stack(bands)
         data = np.transpose(data, (2,0,1))
-        data = crop32(data)
+        transform = xx.rio.transform()
+        data, transform = crop32(data, transform)
+
+        #Add crs and transform to metadata
+        metadata = model.mask_tag
+        metadata['transform'] = transform
+        metadata['crs'] = xx.rio.crs
 
         # Inference
         self.masks[type] = {
             'mask': model.inference(data),
-            'metadata': model.mask_tag
+            'data': data,
+            'metadata': metadata
         }
+
+    def display_mask_on_image(self, model_tag):
+        mask = self.masks[model_tag]
+        if mask['metadata']['label_map'] and mask['metadata']['wc_code_map']:
+            wc_display(mask['data'], mask['mask'], 
+                label_map=mask['metadata']['label_map'], 
+                wc_code_map=mask['metadata']['wc_code_map'])
+        else: wc_display(mask['data'], mask)
 
 
 

@@ -72,3 +72,44 @@ def sentinel_worldcover_image_and_mask_display(data, mask, label_map = None, wc_
     plt.axis("off")
     plt.show()
 
+
+
+
+def display_change_mask_on_image(data, mask, alpha = 1):
+    '''
+    Expects mask to be a change mask with two values
+        1's are displayed as red
+        -1's are displayed as green
+    '''
+
+    # Prep and normalize input
+    rgb = data[:, :, [2,1,0]]
+    rgb = rgb.astype(np.float32)
+    rgb = 5* ((rgb - rgb.min()) / (rgb.max() - rgb.min()))
+
+
+    # Prep mask overlay
+    rgb_mask = np.zeros((*mask.shape, 4), dtype=np.uint8)
+    rgb_mask[mask == 1] = [255, 0, 0, 255]      # loss
+    rgb_mask[mask == -1] = [0, 255, 0, 255]     # growth
+
+    #alpha_mask = np.zeros(mask.shape)
+    #alpha_mask[mask == 1] = alpha
+    #alpha_mask[mask == -1] = alpha
+
+    legend_elements = [
+        Patch(facecolor='red', label='Vegetation Loss'),
+        Patch(facecolor='green', label='Vegetation Growth')
+    ]
+
+    # Plot
+    plt.figure(figsize=(10, 10))
+    plt.imshow(rgb)
+    plt.imshow(rgb_mask)
+    plt.legend(
+        handles=legend_elements,
+        bbox_to_anchor=(1.05, 1),
+        loc="upper left"
+    )
+    plt.axis("off")
+    plt.show()
