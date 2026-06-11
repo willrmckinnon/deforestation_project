@@ -3,3 +3,6 @@
 .env.*
 *.ipynb
 granite*
+*.shp
+*.pkl
+sample_data
