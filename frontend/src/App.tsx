@@ -1,57 +1,51 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 function App() {
   const [input1, setInput1] = useState('39.015025')
   const [input2, setInput2] = useState('-77.014889')
   const [input3, setInput3] = useState('100')
+  const socketRef = useRef<WebSocket | null>(null)
   const [logMessage, setLogMessage] = useState('Execute the process to see results')
-  const [imageSrc, setImageSrc] = useState('')
+  const [events, setEvents] = useState<any[]>([])
 
-
-  const [socket, setSocket] = useState<WebSocket | null>(null)
 
 
   useEffect(() => {
+    // Websocket setup
+    if (socketRef.current) return
 
     const ws = new WebSocket('ws://127.0.0.1:8000/ws')
+    socketRef.current = ws
 
-    ws.onopen = () => {
-      console.log('WebSocket connected')
-    }
+    ws.onopen = () => console.log('WebSocket connected')
 
+    // Websocket message handling
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-
-      if (data.type === 'image') {
-        setImageSrc(`data:image/png;base64,${data.data}`)
-      }
-
-      if (data.type === 'message') {
-        setLogMessage(data.data)
-      }
+      const msg = JSON.parse(event.data)
+      if (msg.type == 'status') setLogMessage(msg.data);
+      else setEvents(prev => [...prev, msg]);
     }
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected')
-    }
-
-    setSocket(ws)
+    ws.onerror = (error) => console.error('WebSocket error:', error)
+    ws.onclose = () => console.log('WebSocket disconnected')
 
     return () => {
       ws.close()
+      socketRef.current = null
     }
-
   }, [])
 
 
+
+
   const handleExecute = async () => {
+    const socket = socketRef.current
     console.log('Executing...')
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) return
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      setLogMessage('Error setting up the websocket')
+      return
+    }
 
     socket.send(
       JSON.stringify({
@@ -130,6 +124,8 @@ function App() {
     >
       <h2>Visualization</h2>
 
+
+
       <div
         style={{
           width: '100%',
@@ -139,20 +135,55 @@ function App() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'auto'
+          justifyContent: 'flex-start',
+          overflowY: 'auto',
+          overflowX: 'hidden'
         }}
       >
-        <img
-          src={imageSrc}
-          style={{ maxWidth: '75%', maxHeight: '75%'}}
-        />
+        {/* Status Window at the top */}
+        <div style = {{
+          border: '1px solid #333',
+          backgroundColor: '#333',
+          width: '100%'
+        }}
+        >
+          <pre style={{ color: 'white', padding: '0', fontSize: '0.7rem',}}> {logMessage} </pre>
+        </div>
 
-        <pre style={{ color: 'white' , padding: '0', fontSize: '0.7rem'}}>
-          {logMessage}
-        </pre>
+        {/* Dynamic window with logger updates */}
+        <div
+          style = {{
+          justifyContent: 'flex-start',
+          overflowY: 'auto',
+          overflowX: 'hidden'
+          }}>
+          {events.map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                marginBottom: '3px',
+                padding: '0'
+              }}
+            >
+              {item.type === "text" && (
+                <pre style ={{
+                  color: 'white' ,
+                  padding: '0',
+                  fontSize: '0.7rem',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word'
+                }}>{item.data}</pre>
+              )}
 
-      
+              {item.type === "image" && (
+                <img
+                  src={`data:image/png;base64,${item.data}`}
+                  style={{ maxWidth: '100%' }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
     </div>

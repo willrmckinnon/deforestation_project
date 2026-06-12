@@ -3,9 +3,12 @@ import os
 import queue
 import asyncio
 from fastapi import FastAPI, WebSocket
+from starlette.websockets import WebSocketDisconnect
+import base64
+from io import BytesIO
 
 #Scripts
-from image_collection import main as image_collection
+from simulate_investigation import inv_sim
 
 
 #Set the Correct base directory to reference the other folders
@@ -15,42 +18,60 @@ env["PYTHONUNBUFFERED"] = "1"
 #Setup the app
 app = FastAPI()
 
+# Image handling
+def image_to_base64(img):
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket:WebSocket):
-    
-    #Setup the queue for communication
+async def websocket_endpoint(websocket: WebSocket):
+
     log_queue = queue.Queue()
-    def logger(message, type = 'message'):
+    def logger(message, type='text', meta = ''):
+        if type == 'image':
+            message = image_to_base64(message)
+
         log_queue.put({
-                'type': type,
-                'data': message
+            "type": type,
+            "data": message,
+            "meta": meta
         })
 
-
-    # RUN THE SCRIPT
     await websocket.accept()
+    try:
+        while True:
+            try:
+                data = await websocket.receive_json()
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
 
-    while True:
-        data = await websocket.receive_json()
-        task = asyncio.create_task(
-            asyncio.to_thread(
-                image_collection,
-                float(data['lat']),
-                float(data['lon']), 
-                float(data['sqkm']),
-                logger
-        ))
+            task = asyncio.create_task(
+                asyncio.to_thread(
+                    inv_sim,
+                    data['lat'],
+                    data['lon'],
+                    data['sqkm'],
+                    logger
+                )
+            )
 
-        while not task.done():
-            #Once an item is queued log it
+            while not task.done():
+                while not log_queue.empty():
+                    msg = log_queue.get()
+                    await websocket.send_json(msg)
+
+                await asyncio.sleep(0.1)
+
             while not log_queue.empty():
                 msg = log_queue.get()
                 await websocket.send_json(msg)
-            await asyncio.sleep(0.1)
 
-        #Empty the queue once the process is complete
-        while not log_queue.empty():
-            msg = log_queue.get()
-            await websocket.send_json(msg)
+    except WebSocketDisconnect:
+        print("WebSocket closed cleanly")
 
-
+    finally:
+        print("Cleaning up socket")
