@@ -154,19 +154,12 @@ class ObservedArea:
         return image_array, xx
     
     #Method to quickly return the visual as a PIL image
-    def get_image(self, saturation = 2):
-       
-        '''        
-        rgb = self.stack(['B04', 'B03', 'B02'])[0]
-        rgb = np.transpose(rgb,(2,0,1))
-        rgb = crop32(rgb)
-        rgb = np.transpose(rgb,(1,2,0))
-
-
-        #Per band normalization
-        rgb_scaled = rgb.copy()
-        '''
-
+    def get_image(self,
+                    mask_type = None,
+                    saturation = 2,
+                    pos_color = [255, 0, 0],
+                    neg_color = [0, 255, 0]
+                   ):
         data = self.stack(['B02','B03','B04'])[0]
         data =crop32(np.transpose(data,(2,0,1)))
         data = np.transpose(data,(1,2,0))
@@ -180,19 +173,19 @@ class ObservedArea:
         norm_data = norm_data[:,:,[2,1,0]]
         norm_data = np.clip((norm_data * saturation),0,255).astype(np.uint8)
 
+        # Add a mask if requested and return
+        if mask_type:
+            overlay = norm_data.copy()
+            mask = self.masks[mask_type]['mask']
+            label_map = self.masks[mask_type]['metadata']['label_map']
+            for label, _ in label_map.items():
+                if label != 0:
+                    overlay[mask == label] = [np.random.randint(50, 256, size=3, dtype=np.uint8)]
+            overlay = overlay.astype(np.uint8)
+            return Image.fromarray(overlay)
+        else:
+            return Image.fromarray(norm_data)
 
-        '''
-
-
-        for i in range(rgb.shape[2]):
-            band_max = 0.7 * rgb[:,:,i].max()
-            rgb_scaled[:,:,i] = np.clip((rgb_scaled[:,:,i] / band_max), 0, 1)
-        rgb_scaled = (rgb_scaled * 255).astype(np.uint8)
-        rgb_scaled = np.clip((rgb_scaled * saturation), 0, 255)
-        '''
-
-        # Image creation
-        return Image.fromarray(norm_data)
 
     # Returns the entire tile image for analysis
     def get_whole_item(self, ind):
@@ -200,9 +193,11 @@ class ObservedArea:
         visual_href = signed_item.assets["visual"].href
         img = rio.open_rasterio(visual_href)
         return img
-        
+
+
+
     # Provided a model, creates the mask for the observation 
-    def inference(self, model, type):
+    def inference(self, model, mask_type):
         '''
         Mehod designed specifically for a model with the following characteristics
         - Model contains .bands <list> attribute that lists the various sentinel bands required as input
@@ -222,11 +217,18 @@ class ObservedArea:
         metadata['crs'] = xx.rio.crs
 
         # Inference
-        self.masks[type] = {
-            'mask': model.inference(data),
+        mask = model.inference(data)
+
+        self.masks[mask_type] = {
+            'mask': mask,
             'data': data,
             'metadata': metadata
         }
+
+        if self.logger != print: 
+            self.logger(f'Mask of observation {self.date}')
+            self.logger(self.get_image(mask_type=mask_type),'image')
+
 
     def display_mask_on_image(self, model_tag):
         mask = self.masks[model_tag]

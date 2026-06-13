@@ -77,11 +77,11 @@ class Investigation():
     def collect_observations(self):
         target_date = datetime.now().date()
         self.observations = []
-
-        initial_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, target_date, windows = [45, 60, 90, 360])
+        initial_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, target_date, windows = [45, 60, 90, 360], logger = self.logger)
         if initial_obs.items == []: 
-            self.logger('Could not collect sufficient cloudless items of given location')
+            self.logger('Could not collect sufficient cloudless items of given location', 'status')
             return None
+        self.logger(initial_obs.get_image(),'image')
         
         # Get the oldest date from the observation to use as the new benchmark
         first_year_date = initial_obs.date
@@ -90,9 +90,10 @@ class Investigation():
         # Collect all following observations
         for year in self.observation_increments:
             new_target_date = first_year_date - timedelta(days = 365*year)
-            new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180]) 
+            new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180], logger = self.logger) 
             self.observations.append(new_obs)
-        self.logger('Completed observations for given areas')
+            self.logger(new_obs.get_image(), 'image')
+        self.logger('Completed observations for given areas', 'status')
 
 
 
@@ -103,7 +104,7 @@ class Investigation():
 
         for model_type, model in self.models.items():
             for obs in self.observations:
-                self.logger(f'Generating {model_type} mask for {obs.date} observation')
+                self.logger(f'Generating {model_type} mask for {obs.date} observation', 'status')
                 obs.inference(model, model_type)
 
 

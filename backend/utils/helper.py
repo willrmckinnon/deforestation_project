@@ -10,7 +10,7 @@ from shapely.geometry import box, Polygon
 
 #Reads the config file
 def load_config():
-    with open("config.yaml", "r") as f:
+    with open("backend/config.yaml", "r") as f:
         config = yaml.safe_load(f)
     return config
 

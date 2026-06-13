@@ -7,14 +7,28 @@ Needs to be updated every time new edits happen that affect how investigations
 happen on the models feature branch
 
 '''
-from PIL import Image
-from time import sleep
+from backend.investigate import ForestInvestigation
+from backend.utils.helper import load_config
+ 
+def run_inv(lat, lon, sqkm, logger = print):
+    lat, lon, sqkm = map(float, [lat, lon, sqkm])
+
+    logger(f'Running Investigation on {lat}, {lon}', 'status')
+
+    config = load_config()
+    model_path = config['model_paths']['forest_model']
+
+    try: investigation = ForestInvestigation(lat, lon, sqkm, model_path, observation_increments=[1, 2], logger=logger)
+    except Exception as e: logger(f'Investigation failed from the following error: \n{e}')
+
+    logger(f'Investigation complete for {lat}, {lon}.', 'status')
 
 
-def inv_sim(lat, lon, sqkm, logger = print):
-    logger('running sim', 'status')
-    sleep(.2)
 
+
+
+
+'''
     logger(f'Completing sim for {lat}, {lon}', 'status')
 
     img1 = Image.open('sample_data/after_img.png')
@@ -32,6 +46,6 @@ def inv_sim(lat, lon, sqkm, logger = print):
     sleep(0.3)
     logger(chg_img, 'image')
     logger(f'Sim Complete for {lat}, {lon}', 'status')
-
+'''
 
 

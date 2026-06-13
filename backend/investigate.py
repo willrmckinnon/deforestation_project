@@ -30,7 +30,7 @@ class ForestInvestigation(Investigation):
     def analyze_vegetation_change(self, forest_model_tag, filter_width = 3):
         # Double check that there are enough observations to conduct a change analysis
         if len(self.observations) < 2:
-            self.logger('No historical increments provided to analyze')
+            self.logger('No historical increments provided to analyze', 'status')
             return
         
         change_log_rows = []
@@ -99,6 +99,32 @@ class ForestInvestigation(Investigation):
             geometry = 'veg_loss_multipolygons',
             crs = self.observations[0].masks[forest_model_tag]['metadata']['crs']
             )
+        
+        sub_log = self.veg_change_log[self.veg_change_log['newer_observation_date'] == max(self.veg_change_log['newer_observation_date'])]
+        line_log = sub_log[sub_log['older_observation_date'] == min(sub_log['older_observation_date'])]
+        self.logger('Mask displaying total vegetation change')
+        self.logger('Green: Collective Vegetaion Growth  |  Red: Collective Vegetation Loss')
+        self.logger(line_log.generate_change_image(0),'image')
+
+        sub_log = sub_log[['newer_observation_date','older_observation_date', 'percent_veg_change']]
+        sub_log.rename(columns={'newer_observation_date':'Most Recent Observation Date',
+                        'older_observation_date':'Historical Observation Date',
+                        'percent_veg_change':'Percentage of Historical Vegetation Remaining'
+                        }, inplace=True)
+        col_text = ''
+        for col in sub_log.columns:
+            col_text += str(col)
+            if col != sub_log.columns[-1]: col_text += ' | '
+        self.logger(col_text)
+
+
+        for row in sub_log.itertuples(index=False):
+            line = ''
+            line += '          ' + str(row[0]) + '         |'
+            line += '          ' + str(row[1]) + '         |'
+            line += '                     ' + str(row[2]) + '                    '
+            self.logger(line)
+        
         
     
 

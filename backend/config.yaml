@@ -4,3 +4,5 @@ known_locations:
   hood_county: [32.4343, -97.8286]
   linn_county: [42.0791, -91.5984]
   madre_de_dios: [-12.680635, -69.365719]
+model_paths:
+  forest_model: 'backend/models/checkpoints/wc_tropical_forest_best_cp.pth'
