@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
 
 function App() {
-  const [input1, setInput1] = useState('39.015025')
-  const [input2, setInput2] = useState('-77.014889')
-  const [input3, setInput3] = useState('100')
+  const [input1, setInput1] = useState('-12.680635')
+  const [input2, setInput2] = useState('-69.365719')
+  const [input3, setInput3] = useState('40')
   const socketRef = useRef<WebSocket | null>(null)
   const [logMessage, setLogMessage] = useState('Execute the process to see results')
   const [events, setEvents] = useState<any[]>([])
