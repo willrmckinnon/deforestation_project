@@ -14,7 +14,7 @@ function App() {
     // Websocket setup
     if (socketRef.current) return
 
-    const ws = new WebSocket('ws://127.0.0.1:8000/ws')
+    const ws = new WebSocket(import.meta.env.VITE_WS_URL)
     socketRef.current = ws
 
     ws.onopen = () => console.log('WebSocket connected')
