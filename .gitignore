@@ -1,12 +1,9 @@
 *.pth
+*.pem
 .env
 .env.*
 *.ipynb
 granite*
 *.shp
-*.pkl
-sample_data
 STARTING-THE-APP.txt
-*.pem
-node_modules
-dist
+sample_data
