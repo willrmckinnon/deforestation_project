@@ -8,3 +8,5 @@ granite*
 sample_data
 STARTING-THE-APP.txt
 *.pem
+node_modules
+dist
