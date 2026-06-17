@@ -8,7 +8,7 @@ import base64
 from io import BytesIO
 
 #Scripts
-from backend.run_investigation import run_inv
+from simulate_investigation import inv_sim
 
 
 #Set the Correct base directory to reference the other folders
@@ -31,8 +31,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     log_queue = queue.Queue()
     def logger(message, type='text', meta = ''):
-        if type == 'image':
-            message = image_to_base64(message)
 
         log_queue.put({
             "type": type,
@@ -51,10 +49,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
             task = asyncio.create_task(
                 asyncio.to_thread(
-                    run_inv,
-                    data['lat'],
-                    data['lon'],
-                    data['sqkm'],
+                    inv_sim,
+                    data['params']['name'],
+                    data['params']['latitude'],
+                    data['params']['longitude'],
+                    data['params']['area'],
+                    data['params']['num_obs'],
                     logger
                 )
             )
