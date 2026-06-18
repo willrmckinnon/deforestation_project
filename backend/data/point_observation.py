@@ -174,13 +174,14 @@ class ObservedArea:
         norm_data = np.clip((norm_data * saturation),0,255).astype(np.uint8)
 
         # Add a mask if requested and return
-        if mask_type:
+        if mask_type != None:
             overlay = norm_data.copy()
             mask = self.masks[mask_type]['mask']
             label_map = self.masks[mask_type]['metadata']['label_map']
+            color_map = self.masks[mask_type]['metadata']['color_map']
             for label, _ in label_map.items():
                 if label != 0:
-                    overlay[mask == label] = [np.random.randint(50, 256, size=3, dtype=np.uint8)]
+                    overlay[mask == label] = color_map[label]
             overlay = overlay.astype(np.uint8)
             return Image.fromarray(overlay)
         else:
@@ -210,6 +211,7 @@ class ObservedArea:
         data = np.transpose(data, (2,0,1))
         transform = xx.rio.transform()
         data, transform = crop32(data, transform)
+
 
         #Add crs and transform to metadata
         metadata = model.mask_tag

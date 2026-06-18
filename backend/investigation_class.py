@@ -104,7 +104,6 @@ class Investigation():
 
         for model_type, model in self.models.items():
             for obs in self.observations:
-                self.logger(f'Generating {model_type} mask for {obs.date} observation', 'status')
                 obs.inference(model, model_type)
 
 
