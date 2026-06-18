@@ -78,7 +78,7 @@ def npy_to_img(img, saturation = 1):
     
     return Image.fromarray(norm_sat)
 
-
+ 
 #Crops input data to the nearest multiple of 32 for model handling
 #INPUT: requires a (BxHxW) shapped numpy array
 def crop32(data, transform = None):

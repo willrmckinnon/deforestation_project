@@ -6,6 +6,23 @@ from backend.models.model.unet import UNet
 ###########################################################################################
 ###########################################################################################
 
+WC_COLOR_MAP = {
+    0: [0,0,0],
+    10: [0, 100,0],
+    20: [255,187,34],
+    30: [255,255,76],
+    40: [240,150,255],
+    50: [250,0,0],
+    60: [180,180,180],
+    70: [240,240,240],
+    80: [0,100,200],
+    90: [0,150,160],
+    95: [0,207,117],
+    100: [250,230,160]
+}
+
+
+
 def normalize_image(image):
     
     image = image.astype(np.float32)
@@ -80,6 +97,11 @@ class Model():
         if self.checkpoint['wc_code_map']: 
             self.wc_code_map = self.checkpoint['wc_code_map']
             self.mask_tag['wc_code_map'] = self.wc_code_map
+            color_map = {}
+            for _, val in self.wc_code_map.items(): 
+                color_map[val] = WC_COLOR_MAP[val]
+            self.color_map = color_map
+            self.mask_tag['color_map'] = color_map
 
 
 
@@ -127,6 +149,11 @@ class Model():
                 # Prep the output
                 pred = pred.squeeze()
                 mask = torch.argmax(pred, dim=0)
+
+                # Adapt mask to hold the WC labels
+                if self.wc_code_map:
+                    for key, val in self.wc_code_map.items():
+                        mask[mask == key] = val
 
                 return mask
 
