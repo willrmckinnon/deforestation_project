@@ -31,5 +31,4 @@ node_modules
 
 
 # Cache directory
-dev/
 .next/
