@@ -1,5 +1,5 @@
 # Custom Imports
-from backend.investigation_class import Investigation
+from investigation_class import Investigation
 
 # Library Imports
 import numpy as np
@@ -22,7 +22,7 @@ class ForestInvestigation(Investigation):
         models_to_inference = {model_tag: model_path}
         super().__init__(lat, lon, sqkm, models_to_inference, observation_increments, logger)
         
-        self.analyze_vegetation_change(model_tag)
+        #self.analyze_vegetation_change(model_tag)
 
 
 
@@ -75,7 +75,7 @@ class ForestInvestigation(Investigation):
                 start_pix = mask2_veg.sum()
                 end_pix = mask1_veg.sum()
                 percent_change = round(100*(end_pix/start_pix), 2)
-
+ 
 
                 change_log = {
                     'older_observation_date': obs2.date,

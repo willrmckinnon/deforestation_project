@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from backend.models.model.unet import UNet
+from models.model.unet import UNet
 
 
 ###########################################################################################

@@ -10,7 +10,7 @@ import { Play, Satellite, MapPin, Cpu, Grid3x3 } from 'lucide-react'
 type Props = {
   onExecute: (params: InferenceParams) => void
 }
-
+ 
 function Field({
   label,
   icon,
@@ -44,6 +44,50 @@ export function InferenceForm({ onExecute }: Props) {
 
   const valid = name.trim().length > 0 && latitude.trim().length > 0 && longitude.trim().length > 0
 
+  type Preset = {
+    label: string
+    name: string
+    latitude: string
+    longitude: string
+    area: string
+    num_obs: string
+  }
+
+  const PRESETS: Preset[] = [
+    {
+      label: 'Amazon Basin',
+      name: 'Amazon Basin',
+      latitude: '-12.6806',
+      longitude: '-69.3657',
+      area: AREA_SIZES[1],
+      num_obs: NUM_OBSERVATIONS[1],
+    },
+    {
+      label: 'South Papua',
+      name: 'South Papua',
+      latitude: '-8.206518',
+      longitude: '140.321443',
+      area: AREA_SIZES[2],
+      num_obs: NUM_OBSERVATIONS[2],
+    },
+    {
+      label: 'Congo',
+      name: 'Congo',
+      latitude: '1.6063',
+      longitude: '25.7408',
+      area: AREA_SIZES[1],
+      num_obs: NUM_OBSERVATIONS[2],
+    },
+  ]
+
+  function applyPreset(preset: Preset) {
+    setName(preset.name)
+    setLatitude(preset.latitude)
+    setLongitude(preset.longitude)
+    setArea(preset.area)
+    setNumObs(preset.num_obs)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!valid) return
@@ -72,7 +116,7 @@ export function InferenceForm({ onExecute }: Props) {
           </p>
         </div>
       </div>
-
+      
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm"
@@ -107,32 +151,6 @@ export function InferenceForm({ onExecute }: Props) {
               />
             </div>
           </Field>
-
-{/*
-          <Field label="Target region / AOI" icon={<MapPin className="size-4" />}>
-            <input
-              className={inputCls}
-              placeholder="e.g. -3.46, -62.21 · 1200 km²"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-            />
-          </Field>
-
-
-          <Field label="Model" icon={<Cpu className="size-4" />}>
-            <select
-              className={cn(inputCls, 'appearance-none')}
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {MODELS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </Field>
-*/}
 
           <Field label="Area of Coverage" icon={<Cpu className="size-4" />}>
             <select
@@ -173,6 +191,27 @@ export function InferenceForm({ onExecute }: Props) {
           Execute Inference
         </Button>
       </form>
+      <div className="mb-8 flex flex-col items-start gap-3"></div>
+      <div className="mb-6 flex items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap italic">
+          Select from presets:
+        </span>
+        <div className="flex flex-wrap justify-center gap-2">
+          {PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => applyPreset(preset)}
+              className="text-xs"
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
     </div>
   )
 }

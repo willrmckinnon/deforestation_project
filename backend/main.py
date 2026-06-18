@@ -8,7 +8,7 @@ import base64
 from io import BytesIO
 
 #Scripts
-from simulate_investigation import inv_sim
+from run_investigation import run_inv
 
 
 #Set the Correct base directory to reference the other folders
@@ -37,7 +37,7 @@ async def websocket_endpoint(websocket: WebSocket):
             "data": message,
             "meta": meta
         })
-
+ 
     await websocket.accept()
     try:
         while True:
@@ -49,8 +49,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             task = asyncio.create_task(
                 asyncio.to_thread(
-                    inv_sim,
-                    data['params']['name'],
+                    run_inv,
                     data['params']['latitude'],
                     data['params']['longitude'],
                     data['params']['area'],

@@ -1,6 +1,6 @@
 # Custom Functions
-from backend.utils.helper import point_to_bbox, crop32
-from backend.models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
+from utils.helper import point_to_bbox, crop32
+from models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
 
 # Basic Libraries
 import warnings

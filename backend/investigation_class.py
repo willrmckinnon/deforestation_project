@@ -1,13 +1,19 @@
 # Custom Imports
-from backend.data import point_observation
-from backend.models.inference import Model
+from data import point_observation
+from models.inference import Model
+from utils.helper import crop32
 
 # Library Imports
+import uuid
+import base64
 import numpy as np
 from PIL import Image
+from io import BytesIO
 from geopandas import GeoDataFrame
-from backend.utils.helper import crop32
 from datetime import datetime, timedelta
+
+
+
 
 
 class Investigation():
@@ -28,7 +34,7 @@ class Investigation():
         self.observation_increments = observation_increments
         
         self.collect_observations()
-        self.generate_masks()
+        #self.generate_masks()
 
 
 
@@ -71,17 +77,36 @@ class Investigation():
             else: return img
 
             
+    def package_obs_batch(self, ind, date, image):
+        def image_to_base64(img):
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            header = "data:image/png;base64,"
+            return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
+        return {
+            'batch_id': "Observation "+str(ind),
+            'id': str(uuid.uuid4()),
+            'index': ind,
+            'date': str(date),
+            'area': str(self.sqkm),
+            'image': image_to_base64(image),
+            'lat': float(self.lat),
+            'lng': float(self.lon)
+            }
 
 
     def collect_observations(self):
+        obs_index = 1
         target_date = datetime.now().date()
         self.observations = []
         initial_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, target_date, windows = [45, 60, 90, 360], logger = self.logger)
         if initial_obs.items == []: 
             self.logger('Could not collect sufficient cloudless items of given location', 'status')
             return None
-        self.logger(initial_obs.get_image(),'image')
+        batch = self.package_obs_batch(obs_index, initial_obs.date, initial_obs.get_image())
+        self.logger(batch,'batch')
+        obs_index +=1
         
         # Get the oldest date from the observation to use as the new benchmark
         first_year_date = initial_obs.date
@@ -92,7 +117,9 @@ class Investigation():
             new_target_date = first_year_date - timedelta(days = 365*year)
             new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180], logger = self.logger) 
             self.observations.append(new_obs)
-            self.logger(new_obs.get_image(), 'image')
+            batch = self.package_obs_batch(obs_index, new_obs.date, new_obs.get_image())
+            self.logger(batch,'batch')
+            obs_index +=1
         self.logger('Completed observations for given areas', 'status')
 
 
