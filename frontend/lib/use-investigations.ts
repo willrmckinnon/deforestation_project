@@ -9,7 +9,8 @@ export function useInvestigations() {
   const [runs, setRuns] = useState<Run[]>([])
   const [activeRunId, setActiveRunId] = useState<string | null>(null)
   const cancelMap = useRef<Map<string, () => void>>(new Map())
-
+  const socketMap = useRef<Map<string, InferenceSocket>>(new Map())
+ 
   const startRun = useCallback((params: InferenceParams) => {
     const id = `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     const expectedBatches = 2 //4 + Math.floor(Math.random() * 3)
@@ -24,16 +25,8 @@ export function useInvestigations() {
     setRuns((prev) => [run, ...prev])
     setActiveRunId(id)
 
-    const socket = new InferenceSocket(
-      "ws://localhost:8000/ws",
-      {
-        onOpen: () => {
-          socket.execute(params)
-        },
-
-        onStatus: (msg) => {
-          console.log("Received websocket message:", msg)
-        },
+    const socket = new InferenceSocket({ 
+        onOpen: () => {socket.execute(params)},
 
         onBatch: (msg) => {
           console.log("RAW BATCH:", msg)
@@ -51,6 +44,36 @@ export function useInvestigations() {
           )
         },
 
+        onModelReturn: (results) => {
+          setRuns(prev =>
+            prev.map(r => {
+              if (r.id !== id) return r
+              return {
+                ...r,
+                batches: r.batches.map(batch => {
+                  const result = results.find(
+                    (res: { batchId: string }) => res.batchId === batch.id
+                  )
+                  if (!result) return batch
+                  return {
+                    ...batch,
+                    masks: [
+                      ...batch.masks,
+                      {
+                        image: result.image,
+                        metadata: result.metadata,
+                        modelName: result.model_name,
+                        tag: result.model_tag
+                      },
+                    ],
+                  }
+                }),
+              }
+            })
+          )
+        },
+
+
         onComplete: () => {
           setRuns(prev =>
             prev.map(r =>
@@ -61,12 +84,52 @@ export function useInvestigations() {
         }
       }
     )
+    socketMap.current.set(id, socket)
     return id
   }, [])
 
   const selectRun = useCallback((id: string | null) => {
     setActiveRunId(id)
   }, [])
+
+
+
+
+
+  
+  // Method for running inferences
+  type Props = {
+    onExecute: (args: {
+      run: Run
+      model: string
+    }) => void
+  }
+  const inferenceModel = useCallback(( run: Run, model: string) => {
+    setRuns(prev =>
+      prev.map(r =>
+        r.id === run.id ? { ...r, status: 'streaming' } : r
+      )
+    )
+    const socket = socketMap.current.get(run.id)
+    if (!socket) {
+      console.error("No socket found for run", run.id)
+      return
+    }
+
+    // Code for sending the imformation to the backend
+    const inferencePayload = run.batches.map(batch => ({
+      batchId: batch.id,
+      observation: batch.observation,
+    }))
+    socket.executeModel({
+      modelName: model, 
+      observations: inferencePayload,
+      lat: run.batches[0].lat,
+      lng: run.batches[0].lng,
+      area: run.batches[0].area,})
+  }, [])
+
+
 
   // cleanup on unmount
   useEffect(() => {
@@ -79,7 +142,7 @@ export function useInvestigations() {
 
   const activeRun = runs.find((r) => r.id === activeRunId) ?? null
 
-  return { runs, activeRun, activeRunId, startRun, selectRun }
+  return { runs, activeRun, activeRunId, startRun, selectRun, inferenceModel }
 }
 
 // re-export for convenience

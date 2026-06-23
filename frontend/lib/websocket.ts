@@ -1,20 +1,22 @@
-import type { InferenceParams } from '@/lib/types'
+import type { InferenceParams, ModelInferenceParams } from '@/lib/types'
+import { makeBatch } from './inference-engine'
 
 
 export type SocketHandlers = {
-  onStatus?: (data: any) => void
   onBatch?: (data: any) => void
   onComplete?: () => void
   onError?: (error: Event) => void
   onOpen?: () => void
+  onModelReturn?: (data: any) => void
 }
 
+const WS_URL = "ws://localhost:8000/ws"
 
 export class InferenceSocket {
   private ws: WebSocket
 
-  constructor(url: string, handlers: SocketHandlers) {
-    this.ws = new WebSocket(url)
+  constructor(handlers: SocketHandlers) {
+    this.ws = new WebSocket(WS_URL)
 
   // Handle Basic Operations //
     // Open
@@ -48,11 +50,15 @@ export class InferenceSocket {
 
       switch (msg.type) {
         case 'status':
-          handlers.onStatus?.(msg.data)
+          console.log("Received websocket message:", msg.data)
           break
 
         case 'batch':
           handlers.onBatch?.(msg.data)
+          break
+
+        case 'model_return':
+          handlers.onModelReturn?.(msg.data)
           break
 
         case 'complete':
@@ -65,11 +71,23 @@ export class InferenceSocket {
   execute(params: InferenceParams) {
     this.ws.send(
       JSON.stringify({
-        type: "execute",
+        type: "collect",
         params,
       })
     )
   }
+
+  executeModel(params: ModelInferenceParams) {
+    this.ws.send(
+      JSON.stringify({
+        type: "model_inference",
+        params,
+      })
+    )
+
+  }
+
+
 
   close() {
     this.ws.close()

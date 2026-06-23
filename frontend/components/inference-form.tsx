@@ -7,11 +7,9 @@ import { AREA_SIZES, NUM_OBSERVATIONS } from '@/lib/inference-engine'
 import type { InferenceParams } from '@/lib/types'
 import { Play, Satellite, MapPin, Cpu, Grid3x3 } from 'lucide-react'
 
-type Props = {
-  onExecute: (params: InferenceParams) => void
-}
+type Props = {onExecute: (params: InferenceParams) => void}
  
-function Field({
+export function Field({
   label,
   icon,
   children,
@@ -30,13 +28,12 @@ function Field({
     </label>
   )
 }
-
+ 
 const inputCls =
   'h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30'
 
 export function InferenceForm({ onExecute }: Props) {
   const [name, setName] = useState('')
-  const [region, setRegion] = useState('')
   const [area, setArea] = useState(AREA_SIZES[0])
   const [num_obs, setNumObs] = useState(NUM_OBSERVATIONS[0])
   const [latitude, setLatitude] = useState('')
@@ -60,7 +57,7 @@ export function InferenceForm({ onExecute }: Props) {
       latitude: '-12.6806',
       longitude: '-69.3657',
       area: AREA_SIZES[1],
-      num_obs: NUM_OBSERVATIONS[1],
+      num_obs: NUM_OBSERVATIONS[0],
     },
     {
       label: 'South Papua',

@@ -6,13 +6,12 @@ import { InferenceForm } from './inference-form'
 import { InvestigationView } from './investigation-view'
 import { useInvestigations } from '@/lib/use-investigations'
 import type { InferenceParams } from '@/lib/types'
-
+ 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const { runs, activeRun, activeRunId, startRun, selectRun } =
-    useInvestigations()
+  const { runs, activeRun, activeRunId, startRun, selectRun, inferenceModel } = useInvestigations()
 
-  function handleExecute(params: InferenceParams) {
+  function handleStartRun(params: InferenceParams) {
     startRun(params)
   }
 
@@ -33,9 +32,9 @@ export function Dashboard() {
 
       <main className="flex min-w-0 flex-1 flex-col">
         {activeRun ? (
-          <InvestigationView run={activeRun} />
+          <InvestigationView run={activeRun} onExecute={inferenceModel} />
         ) : (
-          <InferenceForm onExecute={handleExecute} />
+          <InferenceForm onExecute={handleStartRun} />
         )}
       </main>
     </div>

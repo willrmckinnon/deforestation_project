@@ -13,18 +13,21 @@ class ForestInvestigation(Investigation):
     def __init__(self,
                 lat, lon,
                 sqkm,
-                model_path,
-                observation_increments = [1, 3, 5], #Years back to search
+                model_path = None,
+                models_to_inference = None,
+                observation_increments = [], #Years back to search
                 logger = print
                 ):
         
-        model_tag = 'forest'
-        models_to_inference = {model_tag: model_path}
+        if models_to_inference == None:
+            model_tag = 'forest'
+            models_to_inference = {model_tag: model_path}
+            
         super().__init__(lat, lon, sqkm, models_to_inference, observation_increments, logger)
         
         #self.analyze_vegetation_change(model_tag)
 
-
+ 
 
 
     def analyze_vegetation_change(self, forest_model_tag, filter_width = 3):

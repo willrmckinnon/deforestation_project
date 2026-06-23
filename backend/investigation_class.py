@@ -20,8 +20,8 @@ class Investigation():
     def __init__(self,
                 lat, lon,
                 sqkm,
-                models_to_inference,
-                observation_increments = [1, 3, 5], #Years back to search
+                models_to_inference = {},
+                observation_increments = [], #Years back to search
                 logger = print
                 ):
         
@@ -77,7 +77,7 @@ class Investigation():
             else: return img
 
             
-    def package_obs_batch(self, ind, date, image):
+    def package_obs_batch(self, ind, obs):
         def image_to_base64(img):
             buffer = BytesIO()
             img.save(buffer, format="PNG")
@@ -88,11 +88,12 @@ class Investigation():
             'batch_id': "Observation "+str(ind),
             'id': str(uuid.uuid4()),
             'index': ind,
-            'date': str(date),
+            'date': str(obs.date),
             'area': str(self.sqkm),
-            'image': image_to_base64(image),
+            'image': image_to_base64(obs.get_image()),
             'lat': float(self.lat),
-            'lng': float(self.lon)
+            'lng': float(self.lon),
+            'obs': obs.pack()
             }
 
 
@@ -104,7 +105,7 @@ class Investigation():
         if initial_obs.items == []: 
             self.logger('Could not collect sufficient cloudless items of given location', 'status')
             return None
-        batch = self.package_obs_batch(obs_index, initial_obs.date, initial_obs.get_image())
+        batch = self.package_obs_batch(obs_index, initial_obs)
         self.logger(batch,'batch')
         obs_index +=1
         
@@ -117,7 +118,7 @@ class Investigation():
             new_target_date = first_year_date - timedelta(days = 365*year)
             new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180], logger = self.logger) 
             self.observations.append(new_obs)
-            batch = self.package_obs_batch(obs_index, new_obs.date, new_obs.get_image())
+            batch = self.package_obs_batch(obs_index, new_obs)
             self.logger(batch,'batch')
             obs_index +=1
         self.logger('Completed observations for given areas', 'status')
@@ -127,7 +128,7 @@ class Investigation():
 
     def generate_masks(self):
         for model_type, model_path in self.models_to_inference.items():
-            self.models[model_type] = Model(model_path)
+            self.models[model_type] = Model(model_path, model_name=model_type)
 
         for model_type, model in self.models.items():
             for obs in self.observations:
@@ -158,6 +159,18 @@ class Investigation():
             setattr(obj, key, value)
             keys.append(key)
         print(f'Investigation Object loaded with the following attributes: {keys}')
+        return obj
+    
+
+    @classmethod
+    def rehydrate(cls, lat, lon, sqkm, model_path, logger, observations):
+        obj = cls.__new__(cls)
+        setattr(obj, 'lat', lat)
+        setattr(obj, 'lon', lon)
+        setattr(obj, 'sqkm', sqkm)
+        setattr(obj, 'models_to_inference', model_path)
+        setattr(obj, 'logger', logger)
+        setattr(obj, 'observations', observations)
         return obj
         
     

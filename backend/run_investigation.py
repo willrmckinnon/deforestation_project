@@ -18,13 +18,10 @@ def run_inv(lat, lon, sqkm, num_obs, logger = print):
 
     logger(f'Running Investigation on {lat}, {lon}', 'status')
 
-    config = load_config()
-    model_path = config['model_paths']['forest_model']
-
     obs_increments = []
     for i in range(num_obs-1): obs_increments.append(i+1)
 
-    try: investigation = ForestInvestigation(lat, lon, sqkm, model_path, observation_increments=obs_increments, logger=logger)
+    try: investigation = ForestInvestigation(lat, lon, sqkm, observation_increments=obs_increments, logger=logger)
     except Exception as e: logger(f'Investigation failed from the following error: \n{e}','status')
 
     logger(f'Investigation complete for {lat}, {lon}.', 'status')

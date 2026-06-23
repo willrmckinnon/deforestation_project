@@ -140,11 +140,11 @@ export function Sidebar({
                         {run.params.name}
                       </span>
                       <span className="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
-                        <span className="truncate">{run.params.region}</span>
+                        <span className="truncate">{run.expectedBatches} Observations</span>
                         <span aria-hidden>·</span>
                         <span className="shrink-0">
                           {timeAgo(run.createdAt)}
-                        </span>
+                        </span> 
                       </span>
                     </span>
                   )}

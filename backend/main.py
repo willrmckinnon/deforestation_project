@@ -6,9 +6,11 @@ from fastapi import FastAPI, WebSocket
 from starlette.websockets import WebSocketDisconnect
 import base64
 from io import BytesIO
+from time import sleep
 
 #Scripts
 from run_investigation import run_inv
+from collect_inferences import collect_inferences
 
 
 #Set the Correct base directory to reference the other folders
@@ -47,16 +49,30 @@ async def websocket_endpoint(websocket: WebSocket):
                 print("Client disconnected")
                 break
 
-            task = asyncio.create_task(
-                asyncio.to_thread(
-                    run_inv,
-                    data['params']['latitude'],
-                    data['params']['longitude'],
-                    data['params']['area'],
-                    data['params']['num_obs'],
-                    logger
+            if data['type'] == 'collect':
+                task = asyncio.create_task(
+                    asyncio.to_thread(
+                        run_inv,
+                        data['params']['latitude'],
+                        data['params']['longitude'],
+                        data['params']['area'],
+                        data['params']['num_obs'],
+                        logger
+                    )
                 )
-            )
+            elif data['type'] == 'model_inference':
+                num_observations = len(data['params']['observations'])
+                logger(f'Backend running model inferences on {num_observations} observations', 'status')
+                task = asyncio.create_task(
+                    asyncio.to_thread(
+                        collect_inferences,
+                        data['params'],
+                        logger
+                    )
+                )
+                logger('','complete')
+
+            
 
             while not task.done():
                 while not log_queue.empty():

@@ -66,13 +66,14 @@ def remap_mask(mapped, reverse_map):
 
 
 class Model():
-    def __init__(self, checkpoint_path, device = "cpu"):
+    def __init__(self, checkpoint_path, model_name = None, device = "cpu"):
 
          # Setup Basics
         self.device = device
         self.mask_tag = {}
         self.checkpoint_path = checkpoint_path
         self.mask_tag['model_used'] = self.checkpoint_path
+        self.model_name = model_name
 
         # Load Checkpoint
         self.checkpoint = torch.load(checkpoint_path, map_location = self.device)

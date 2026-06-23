@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 import rioxarray as rio
 import planetary_computer
+from shapely import from_wkt
 import matplotlib.pyplot as plt
 from pystac_client import Client
 from shapely.geometry import shape
@@ -19,6 +20,15 @@ from datetime import datetime, timedelta
 # Retry libraries
 from urllib3 import Retry
 from pystac_client.stac_api_io import StacApiIO
+
+
+PLANETARY_COMPUTER_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
+
+def image_to_base64(img):
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    header = "data:image/png;base64,"
+    return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
 
 #SPECIFICALLY FOR SENTINEL ITEMS
@@ -43,6 +53,7 @@ class ObservedArea:
         self.items = []
         self.date = None
         self.masks = {}
+        self.batch = None
 
         # ---------------------------
         # Iteratively attempt to collect with an increasing date window
@@ -211,7 +222,7 @@ class ObservedArea:
         data = np.transpose(data, (2,0,1))
         transform = xx.rio.transform()
         data, transform = crop32(data, transform)
-
+ 
 
         #Add crs and transform to metadata
         metadata = model.mask_tag
@@ -226,10 +237,21 @@ class ObservedArea:
             'data': data,
             'metadata': metadata
         }
+        if model.model_name: model_name = model.model_name
+        else: model_name = 'No model name provided'
 
         if self.logger != print: 
             self.logger(f'Mask of observation {self.date}')
-            self.logger(self.get_image(mask_type=mask_type),'image')
+            img = self.get_image(mask_type=mask_type)
+            result = {}
+            result['model_name'] = model_name
+            result['model_tag'] = mask_type
+            result['batchId'] = self.batch
+            result['image'] = image_to_base64(img)
+            result['metadata'] = {'num_trees': 5, 'data': 'Yes'}
+
+
+            self.logger(result,'model_return')
 
 
     def display_mask_on_image(self, model_tag):
@@ -239,6 +261,46 @@ class ObservedArea:
                 label_map=mask['metadata']['label_map'], 
                 wc_code_map=mask['metadata']['wc_code_map'])
         else: wc_display(mask['data'], mask)
+
+
+
+    def pack(self):
+        date_format = "%Y-%m-%d %H:%M:%S"
+        return {
+            'aoi': self.aoi.wkt,
+            'collection': self.collection,
+            'coverage': float(self.coverage),
+            'date': self.date.strftime(date_format),
+            'target_date': self.target_date.strftime(date_format),
+            'item_ids': [item.id for item in self.items]
+        }
+    
+    @classmethod
+    def unpack(cls, data):
+
+        obs = cls.__new__(cls)
+        date_format = "%Y-%m-%d %H:%M:%S"
+
+        #Unpack the basics
+        obs.aoi = from_wkt(data['aoi'])
+        retry = Retry(total=5, backoff_factor=1,status_forcelist=[502, 503, 504],allowed_methods=None)
+        stac_api_io = StacApiIO(max_retries=retry)
+        obs.catalog = Client.open(PLANETARY_COMPUTER_URL, stac_io = stac_api_io)
+        obs.target_date = datetime.strptime(data['target_date'], date_format)
+
+        obs.collection = data['collection']
+        obs.coverage = data['coverage']
+        obs.date = datetime.strptime(data['date'], date_format)
+
+
+
+        #Collect the items
+        srch = obs.catalog.search(collections=obs.collection, ids=data['item_ids'])
+        signed_items = [planetary_computer.sign(item) for item in srch.get_items()]
+        obs.items = signed_items
+
+        return obs
+        
 
 
 
@@ -261,7 +323,7 @@ def collect_observation(lat, lon, sqkm, target_date: datetime.date, windows = [4
     # ---------------------------
     retry = Retry(total=5, backoff_factor=1,status_forcelist=[502, 503, 504],allowed_methods=None)
     stac_api_io = StacApiIO(max_retries=retry)
-    catalog = Client.open("https://planetarycomputer.microsoft.com/api/stac/v1", stac_io = stac_api_io)
+    catalog = Client.open(PLANETARY_COMPUTER_URL, stac_io = stac_api_io)
 
     # ---------------------------
     # Get the observation
