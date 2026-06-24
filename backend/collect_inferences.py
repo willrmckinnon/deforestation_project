@@ -41,5 +41,8 @@ def collect_inferences(params, logger):
         )
 
         investigation.generate_masks()
+        logger('','complete')
 
-    except Exception as e: logger(f'Inference failed from the following error: \n{e}','status')
+    except Exception as e: 
+        logger(f'Inference failed from the following error: \n{e}','status')
+        logger('','complete')

@@ -57,6 +57,7 @@ export function useInvestigations() {
                   if (!result) return batch
                   return {
                     ...batch,
+                    status: 'complete',
                     masks: [
                       ...batch.masks,
                       {
@@ -93,21 +94,24 @@ export function useInvestigations() {
   }, [])
 
 
-
+ 
 
 
   
   // Method for running inferences
-  type Props = {
-    onExecute: (args: {
-      run: Run
-      model: string
-    }) => void
-  }
   const inferenceModel = useCallback(( run: Run, model: string) => {
     setRuns(prev =>
       prev.map(r =>
-        r.id === run.id ? { ...r, status: 'streaming' } : r
+        r.id === run.id
+          ? {
+              ...r,
+              status: 'analyzing',
+              batches: r.batches.map(batch => ({
+                ...batch,
+                status: 'loading',
+              })),
+            }
+          : r
       )
     )
     const socket = socketMap.current.get(run.id)

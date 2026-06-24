@@ -24,6 +24,7 @@ export function makeBatch(msg: any): Batch {
     lng: msg.lng,
     coverage: msg.obs['coverage'],
     masks: [],
+    status: 'complete'
   }
 }
 

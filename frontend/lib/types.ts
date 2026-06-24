@@ -13,7 +13,11 @@ export type Mask = {
   image: string
   metadata: JSON
 }
- 
+
+export type RunStatus = 'streaming' | 'complete' | 'analyzing'
+export type BatchStatus = 'loading' | 'complete'
+
+
 export type Batch = {
   id: string
   index: number
@@ -27,9 +31,8 @@ export type Batch = {
   coverage: float
   observation: any
   masks: Mask[]
+  status: BatchStatus
 }
-
-export type RunStatus = 'streaming' | 'complete'
 
 export type InferenceParams = {
   name: string

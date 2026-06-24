@@ -128,10 +128,10 @@ export function Sidebar({
                   )}
                 >
                   <span className="shrink-0">
-                    {run.status === 'streaming' ? (
-                      <Loader2 className="size-4 animate-spin text-primary" />
+                    {run.status === 'complete' ? (
+                      <CheckCircle2 className="size-4 text-primary" />                              
                     ) : (
-                      <CheckCircle2 className="size-4 text-primary" />
+                      <Loader2 className="size-4 animate-spin text-primary" />                      
                     )}
                   </span>
                   {open && (

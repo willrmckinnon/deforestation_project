@@ -13,7 +13,6 @@ import {
   Layers,
   Gauge,
   MapPinned,
-  Cpu,
   ChevronLeft,
   ChevronRight,
   BrainCircuit,
@@ -126,15 +125,20 @@ export function InvestigationView({ run, onExecute }: Props) {
               <span
                 className={cn(
                   'flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-medium',
-                  run.status === 'streaming'
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-secondary text-secondary-foreground',
+                  run.status === 'complete'
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'bg-primary/10 text-primary',
                 )}
               >
                 {run.status === 'streaming' ? (
                   <>
                     <Loader2 className="size-3 animate-spin" />
                     Streaming
+                  </>
+                ) : run.status === 'analyzing' ?(
+                  <>
+                    <Loader2 className="size-3 animate-spin" />
+                    Analyzing
                   </>
                 ) : (
                   <>
@@ -244,9 +248,15 @@ export function InvestigationView({ run, onExecute }: Props) {
                 )}
               >
                 <span className="font-medium">{batch.date}</span>
-                <span className="rounded bg-background/60 px-1.5 text-[0.7rem] tabular-nums">
-                  {batch.index}
-                </span>
+
+                {batch.status === 'loading' ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <span className="rounded bg-background/60 px-1.5 text-[0.7rem] tabular-nums">
+                    {batch.index}
+                  </span>
+                )}
+
               </button>
             ))}
 
