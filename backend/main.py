@@ -9,8 +9,8 @@ from io import BytesIO
 from time import sleep
 
 #Scripts
-from run_investigation import run_inv
-from collect_inferences import collect_inferences
+from subprocesses.run_investigation import run_inv
+from subprocesses.collect_inferences import collect_inferences
 
 
 #Set the Correct base directory to reference the other folders

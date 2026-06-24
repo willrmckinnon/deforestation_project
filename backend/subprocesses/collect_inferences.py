@@ -1,8 +1,8 @@
 # Custom Imports
 from models.inference import Model
 from utils.helper import load_config
-from investigate import ForestInvestigation
-from data.point_observation import ObservedArea
+from utils.forest_investigation_class import ForestInvestigation
+from utils.point_observation import ObservedArea
 
 
 # Basic Libraries

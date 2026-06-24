@@ -7,7 +7,7 @@ Needs to be updated every time new edits happen that affect how investigations
 happen on the models feature branch
  
 '''
-from investigate import ForestInvestigation
+from utils.forest_investigation_class import ForestInvestigation
 
  
 def run_inv(lat, lon, sqkm, num_obs, logger = print):

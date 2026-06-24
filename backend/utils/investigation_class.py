@@ -1,5 +1,5 @@
 # Custom Imports
-from data import point_observation
+from utils import point_observation
 from models.inference import Model
 from utils.helper import crop32
 

@@ -1,5 +1,5 @@
 # Custom Imports
-from investigation_class import Investigation
+from utils.investigation_class import Investigation
 
 # Library Imports
 import numpy as np
