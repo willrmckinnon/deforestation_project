@@ -3,10 +3,12 @@ from utils.helper import point_to_bbox, crop32
 from models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
 
 # Basic Libraries
+import base64
 import warnings
 import odc.stac
 import numpy as np
 from PIL import Image
+from io import BytesIO
 import rioxarray as rio
 import planetary_computer
 from shapely import from_wkt
@@ -217,6 +219,7 @@ class ObservedArea:
         - Model is designed to receive input in (B x H x W) shape
         '''
         # Setup the data
+        self.masks = {}
         bands = model.bands
         data, xx = self.stack(bands)
         data = np.transpose(data, (2,0,1))
@@ -251,7 +254,7 @@ class ObservedArea:
             result['metadata'] = {'num_trees': 5, 'data': 'Yes'}
 
 
-            self.logger(result,'model_return')
+            self.logger([result],'model_return')
 
 
     def display_mask_on_image(self, model_tag):
@@ -276,8 +279,8 @@ class ObservedArea:
         }
     
     @classmethod
-    def unpack(cls, data):
-
+    def unpack(cls, data, logger):
+ 
         obs = cls.__new__(cls)
         date_format = "%Y-%m-%d %H:%M:%S"
 
@@ -291,6 +294,7 @@ class ObservedArea:
         obs.collection = data['collection']
         obs.coverage = data['coverage']
         obs.date = datetime.strptime(data['date'], date_format)
+        obs.logger = logger
 
 
 

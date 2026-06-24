@@ -6,10 +6,6 @@ from data.point_observation import ObservedArea
 
 
 # Basic Libraries
-import base64
-from PIL import Image
-from io import BytesIO
-
 
 
 def collect_inferences(params, logger):
@@ -20,23 +16,18 @@ def collect_inferences(params, logger):
     sqkm = float(params['area'].split(' ')[0])
 
     try:
-
         config = load_config()
-        print(config)
-        print(model_name)
-        print(config['model_paths'][model_name])
         if config['model_paths'][model_name]:
             models_to_inference = {model_name: config['model_paths'][model_name]}
         else:
             logger('Could not find specified model name', 'status')
             return
 
-        logger(f'Masks requested for observations from {model_name}', 'status')
         results = []
 
         observations = []
         for obs_str in observation_strings:
-            obs = ObservedArea.unpack(obs_str['observation'])
+            obs = ObservedArea.unpack(obs_str['observation'], logger)
             obs.batch = obs_str['batchId']
             observations.append(obs)
 

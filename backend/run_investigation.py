@@ -8,7 +8,7 @@ happen on the models feature branch
  
 '''
 from investigate import ForestInvestigation
-from utils.helper import load_config
+
  
 def run_inv(lat, lon, sqkm, num_obs, logger = print):
     sqkm = sqkm.split(' ')[0]

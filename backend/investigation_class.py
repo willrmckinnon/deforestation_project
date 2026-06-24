@@ -127,6 +127,7 @@ class Investigation():
 
 
     def generate_masks(self):
+        self.models = {}
         for model_type, model_path in self.models_to_inference.items():
             self.models[model_type] = Model(model_path, model_name=model_type)
 
@@ -163,12 +164,12 @@ class Investigation():
     
 
     @classmethod
-    def rehydrate(cls, lat, lon, sqkm, model_path, logger, observations):
+    def rehydrate(cls, lat, lon, sqkm, models_to_inference, logger, observations):
         obj = cls.__new__(cls)
         setattr(obj, 'lat', lat)
         setattr(obj, 'lon', lon)
         setattr(obj, 'sqkm', sqkm)
-        setattr(obj, 'models_to_inference', model_path)
+        setattr(obj, 'models_to_inference', models_to_inference)
         setattr(obj, 'logger', logger)
         setattr(obj, 'observations', observations)
         return obj

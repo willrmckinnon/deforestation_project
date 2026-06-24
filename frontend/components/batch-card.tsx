@@ -64,7 +64,7 @@ export function BatchCard({ batch }: { batch: Batch }) {
                     : 'rounded-md border px-3 py-1 text-xs'
                 }
               >
-                Original
+                No Mask
               </button>
 
               {batch.masks.map((mask, idx) => (
