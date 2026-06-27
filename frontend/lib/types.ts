@@ -14,6 +14,23 @@ export type Mask = {
   metadata: JSON
 }
 
+export type Report = {
+  title: string
+  type: string
+  data: any
+}
+
+export type Bit = {
+  label: string
+  data: any
+}
+
+export type Info = {
+  tag: string
+  subheading: string
+  bits: Bit[]
+}
+
 export type RunStatus = 'streaming' | 'complete' | 'analyzing'
 export type BatchStatus = 'loading' | 'complete'
 
@@ -31,6 +48,7 @@ export type Batch = {
   coverage: float
   observation: any
   masks: Mask[]
+  metadata: Info[]
   status: BatchStatus
 }
 
@@ -41,7 +59,7 @@ export type InferenceParams = {
   area: string
   num_obs: string
 }
-
+ 
 export type Run = {
   id: string
   params: InferenceParams
@@ -49,7 +67,8 @@ export type Run = {
   status: RunStatus
   batches: Batch[]
   expectedBatches: number
-}
+  reports: Report[]
+} 
 
 export type ModelInferenceParams = {
   modelName: string

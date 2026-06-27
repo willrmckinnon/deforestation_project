@@ -1,7 +1,7 @@
 'use client'
  
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Batch, InferenceParams, Run } from './types'
+import type { InferenceParams, Run, Info } from './types'
 import { makeBatch } from './inference-engine'
 import {InferenceSocket} from './websocket'
 
@@ -13,7 +13,7 @@ export function useInvestigations() {
  
   const startRun = useCallback((params: InferenceParams) => {
     const id = `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    const expectedBatches = 2 //4 + Math.floor(Math.random() * 3)
+    const expectedBatches = parseFloat(params['num_obs']) //4 + Math.floor(Math.random() * 3)
     const run: Run = {
       id,
       params,
@@ -21,6 +21,7 @@ export function useInvestigations() {
       status: 'streaming',
       batches: [],
       expectedBatches,
+      reports: []
     }
     setRuns((prev) => [run, ...prev])
     setActiveRunId(id)
@@ -51,13 +52,25 @@ export function useInvestigations() {
               return {
                 ...r,
                 batches: r.batches.map(batch => {
-                  const result = results.find(
-                    (res: { batchId: string }) => res.batchId === batch.id
-                  )
+                  const result = results.find((res: { batchId: string }) => res.batchId === batch.id)
+
+                  const labels = result?.metadata?.labels ?? []
+                  const newMetadata: Info[] = labels.map((label: Record<string, any>) => ({
+                    tag: label.class,
+                    subheading: String(label.sub),
+                    bits: Object.entries(label)
+                      .filter(([key]) => key !== 'class' && key !== 'sub')
+                      .map(([key, value]) => ({
+                        label: key,
+                        data: value
+                      }))
+                  }))
+
                   if (!result) return batch
                   return {
                     ...batch,
                     status: 'complete',
+                    metadata: [...batch.metadata, ...newMetadata],
                     masks: [
                       ...batch.masks,
                       {
@@ -69,6 +82,26 @@ export function useInvestigations() {
                     ],
                   }
                 }),
+              }
+            })
+          )
+        },
+
+
+        onChangeReport: (results) => {
+          setRuns(prev =>
+            prev.map(r => {
+              if (r.id !== id) return r
+              return {
+                ...r,
+                reports: [
+                  ...r.reports,
+                  {
+                    title: `Report ${r.reports.length+1}`,
+                    type: results.type,
+                    data: results,
+                  },
+                ]
               }
             })
           )
@@ -119,7 +152,7 @@ export function useInvestigations() {
       console.error("No socket found for run", run.id)
       return
     }
-
+ 
     // Code for sending the imformation to the backend
     const inferencePayload = run.batches.map(batch => ({
       batchId: batch.id,

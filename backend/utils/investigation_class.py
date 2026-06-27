@@ -12,7 +12,7 @@ from io import BytesIO
 from geopandas import GeoDataFrame
 from datetime import datetime, timedelta
 
-
+ 
 
 
 
@@ -134,6 +134,7 @@ class Investigation():
         for model_type, model in self.models.items():
             for obs in self.observations:
                 obs.inference(model, model_type)
+
 
 
 

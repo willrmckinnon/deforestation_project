@@ -6,7 +6,9 @@ from models.utils.display import sentinel_worldcover_image_and_mask_display as w
 import base64
 import warnings
 import odc.stac
+import webcolors
 import numpy as np
+from math import sqrt
 from PIL import Image
 from io import BytesIO
 import rioxarray as rio
@@ -31,6 +33,25 @@ def image_to_base64(img):
     img.save(buffer, format="PNG")
     header = "data:image/png;base64,"
     return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
+
+def closest_css3_color(rgb):
+    r, g, b = rgb
+    min_distance = float("inf")
+    closest_name = None
+    for name in webcolors.names("css3"):
+        cr, cg, cb = webcolors.hex_to_rgb(
+            webcolors.name_to_hex(name)
+        )
+        distance = sqrt(
+            (r - cr) ** 2 +
+            (g - cg) ** 2 +
+            (b - cb) ** 2
+        )
+        if distance < min_distance:
+            min_distance = distance
+            closest_name = name
+
+    return closest_name
 
 
 #SPECIFICALLY FOR SENTINEL ITEMS
@@ -201,12 +222,12 @@ class ObservedArea:
             return Image.fromarray(norm_data)
 
 
-    # Returns the entire tile image for analysis
-    def get_whole_item(self, ind):
-        signed_item = planetary_computer.sign(self.items[ind])
-        visual_href = signed_item.assets["visual"].href
-        img = rio.open_rasterio(visual_href)
-        return img
+
+
+
+
+
+
 
 
 
@@ -244,19 +265,57 @@ class ObservedArea:
         else: model_name = 'No model name provided'
 
         if self.logger != print: 
-            self.logger(f'Mask of observation {self.date}')
+            self.logger(f'Mask of observation {self.date}', 'status')
             img = self.get_image(mask_type=mask_type)
             result = {}
             result['model_name'] = model_name
             result['model_tag'] = mask_type
             result['batchId'] = self.batch
             result['image'] = image_to_base64(img)
-            result['metadata'] = {'num_trees': 5, 'data': 'Yes'}
 
+            #Collect the metadata of the mask
+            metadata = {}
+            label_map = self.masks[mask_type]['metadata']['label_map']
+            color_map = self.masks[mask_type]['metadata']['color_map']
+            count_dict = {}
+            u_label, u_count = np.unique(mask, return_counts = True)
+            for i in range(len(u_label)): count_dict[u_label[i]] = u_count[i]
+
+            # Collect info on each label
+            labels_in_mask =[]
+            primary_area= ['', 0]
+            for label, count in count_dict.items():
+                if label != 0:
+                    tot_a = count/10000
+                    tot_area = f'{tot_a:.2f} sqkm'
+                    if float(tot_a) > float(primary_area[1]): 
+                        primary_area[0] = label_map[label]
+                        primary_area[1] = tot_a
+                    perc_a = ((count/sum(count_dict.values()))*100)
+                    percent_of_area = f'{perc_a:.2f}%'
+                    clr = color_map[label]
+                    labels_in_mask.append({'class': label_map[label],
+                                           'sub': percent_of_area,
+                                           'Total Area of This Type:': tot_area,
+                                           'Percentage of Observation this Type:':percent_of_area,
+                                           'Color Key: ': closest_css3_color(clr)
+                                           })
+            metadata['labels'] = labels_in_mask
+            # Collect summary info
+            metadata['primaryLandType'] = str(primary_area[0])
+            result['metadata'] = metadata
 
             self.logger([result],'model_return')
 
 
+
+
+
+
+
+
+
+    # Creates a simple overlay of the mask on top of the image
     def display_mask_on_image(self, model_tag):
         mask = self.masks[model_tag]
         if mask['metadata']['label_map'] and mask['metadata']['wc_code_map']:
@@ -264,6 +323,13 @@ class ObservedArea:
                 label_map=mask['metadata']['label_map'], 
                 wc_code_map=mask['metadata']['wc_code_map'])
         else: wc_display(mask['data'], mask)
+
+    # Returns the entire tile image for analysis
+    def get_whole_item(self, ind):
+        signed_item = planetary_computer.sign(self.items[ind])
+        visual_href = signed_item.assets["visual"].href
+        img = rio.open_rasterio(visual_href)
+        return img
 
 
 
@@ -277,7 +343,7 @@ class ObservedArea:
             'target_date': self.target_date.strftime(date_format),
             'item_ids': [item.id for item in self.items]
         }
-    
+     
     @classmethod
     def unpack(cls, data, logger):
  
@@ -295,6 +361,7 @@ class ObservedArea:
         obs.coverage = data['coverage']
         obs.date = datetime.strptime(data['date'], date_format)
         obs.logger = logger
+        obs.masks = []
 
 
 

@@ -5,7 +5,7 @@ FROM condaforge/miniforge3
 WORKDIR /app
 
 # Copy the requirements
-COPY backend/environment.yaml .
+COPY environment.yaml .
 
 # Install the requirements
 RUN conda clean -a -y && \
@@ -14,11 +14,11 @@ RUN conda clean -a -y && \
     conda clean -a -y
 
 # Copy all the files
-COPY backend/ backend/
+COPY . .
 
 # Set the Env and run the CMD
 ENV PATH=/opt/conda/envs/geo-env/bin:$PATH
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
 

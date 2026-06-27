@@ -3,6 +3,7 @@ from utils.investigation_class import Investigation
 
 # Library Imports
 import numpy as np
+from shapely.geometry import mapping
 from rasterio.features import shapes
 from scipy.ndimage import binary_opening
 from shapely.geometry import shape, MultiPolygon
@@ -27,35 +28,89 @@ class ForestInvestigation(Investigation):
         
         #self.analyze_vegetation_change(model_tag)
 
+  
  
 
-
-    def analyze_vegetation_change(self, forest_model_tag, filter_width = 3):
+    def analyze_vegetation_change(self, model_tag, filter_width = 3):
         # Double check that there are enough observations to conduct a change analysis
         if len(self.observations) < 2:
             self.logger('No historical increments provided to analyze', 'status')
             return
         
-        change_log_rows = []
-        for i in range(len(self.observations)-1):
-            for j in range(i+1,len(self.observations)):
-                obs1 = self.observations[i]
-                obs2 = self.observations[j]
-                mask1 = obs1.masks[forest_model_tag]
-                mask2 = obs2.masks[forest_model_tag]
 
-                # Determine the key values that indicate a forest pixel
-                forest_label_names = ['forest', 'Tree-cover', 'trees']
-                keys = []    
-                for key, value in mask1['metadata']['label_map'].items():
-                    if value in forest_label_names: keys.append(key)
+        result = {}
+        result['type'] = model_tag
+        dates = [obs.date.date() for obs in self.observations]
+        oldest_date = min(dates)
+        newest_date = max(dates)
+        result['dateRanges'] = str(oldest_date) +' - '+str(newest_date)
+        result['dateList'] = [str(date) for date in dates]
 
-                # Calculate where forest pixels have changed
-                mask1_veg = np.where(np.isin(mask1['mask'],keys), 1, 0)
-                mask2_veg = np.where(np.isin(mask2['mask'],keys), 1, 0)
+        #identify labels present in all observations
+        refined_label_map = self.observations[0].masks[model_tag]['metadata']['label_map'].copy()
+        for obs in self.observations:
+            to_del = []
+            u = np.unique(obs.masks[model_tag]['mask'])
+            for key in refined_label_map.keys():
+                if key not in u: to_del.append(key)
+            items_in_dict = refined_label_map.keys()
+            for key in to_del:
+                if key in  items_in_dict: del refined_label_map[key]
+
+
+        
+
+        '''
+        Information I want to send back to the frontend:
+        1. Name of Model
+        2. Data Ranges
+        3. List of Dates
+        4. Change Log rows from each observation to the next
+        5. Change log row for oldest and newest observation
+        6. Image of each change
+
+        '''
+
+
+        # Generate Change Log rows
+        def change_log_row(obs1, obs2, count, final=False):
+            mask1 = obs1.masks[model_tag]
+            mask2 = obs2.masks[model_tag]
+            response = {}
+            d1 = obs1.date.date()
+            d2 = obs2.date.date()
+            date_range = str(d1) + ' - ' + str(d2)
+
+            if final: response['label'] = 'Summary'
+            else: response['label'] = date_range
+            row_data = []
+            geom_data = []
+
+
+            #refine the label_map to only values in the masks
+            for key, value in refined_label_map.items():
+                # Calculate where pixels have changed for that type
+                mask1_veg = np.where(mask1['mask'] == key, 1, 0)
+                mask2_veg = np.where(mask2['mask'] == key, 1, 0)
                 change = mask2_veg - mask1_veg
 
-                # Filter out areas that are thinner than 20m at any point
+                # Calculate percentage changes
+                start_pix = mask2_veg.sum()
+                end_pix = mask1_veg.sum()
+                if start_pix > end_pix: change_dir = 'up'
+                else: change_dir = 'down'
+                percent_change = round(100*(abs(start_pix-end_pix)/start_pix), 1)
+                sqkm_change = abs(start_pix-end_pix)/10000
+
+                row_data.append({'class':value, 
+                                 'changeIndex': count,
+                                 'changeDirection':change_dir, 
+                                 'percentChange': f'{percent_change}%',
+                                 'sqkmChange': f'{sqkm_change:.2f} sqkm'
+                                 })
+                
+                # Prepare the geojson
+                # Filter out areas that are thinner than 30m at any point
                 loss_change = binary_opening((change ==1), structure = np.ones((filter_width,filter_width)))
                 growth_change = binary_opening((change ==-1), structure = np.ones((filter_width,filter_width)))
 
@@ -65,71 +120,85 @@ class ForestInvestigation(Investigation):
 
                 # Generate multipolygon shapes for changes
                 transform = mask1['metadata']['transform']
-                veg_loss_geoms = shapes(loss_change.astype("uint8"), transform=transform)
-                veg_growth_geoms = shapes(growth_change.astype("uint8"), transform=transform)
+                loss_geoms = shapes(loss_change.astype("uint8"), transform=transform)
+                growth_geoms = shapes(growth_change.astype("uint8"), transform=transform)
 
-                veg_loss_polygons = [shape(geom) for geom, val in veg_loss_geoms]
-                veg_growth_polygons = [shape(geom) for geom, val in veg_growth_geoms]
+                loss_polygons = [shape(geom) for geom, _ in loss_geoms]
+                growth_polygons = [shape(geom) for geom, _ in growth_geoms]
 
-                veg_loss_multipoly = MultiPolygon(veg_loss_polygons)
-                veg_growth_multipoly = MultiPolygon(veg_growth_polygons)
+                loss_multipoly = MultiPolygon(loss_polygons)
+                growth_multipoly = MultiPolygon(growth_polygons)
 
-                # Calculate percentage changes
-                start_pix = mask2_veg.sum()
-                end_pix = mask1_veg.sum()
-                percent_change = round(100*(end_pix/start_pix), 2)
+                # Append the loss polygons
+                geom_data.append({
+                    'type': 'feature',
+                    'geometry': mapping(loss_multipoly),
+                    'properties':{
+                        'label': value,
+                        'dates': date_range,
+                        'area': loss_multipoly.area,
+                        'type': 'loss'
+                    }
+                })
+
+                # Append the growth polygons
+                geom_data.append({
+                    'type': 'feature',
+                    'geometry': mapping(growth_multipoly),
+                    'properties':{
+                        'label': value,
+                        'dates': date_range,
+                        'area': growth_multipoly.area,
+                        'type': 'growth'
+                    }
+                })
+
+            
+            response['changes'] = row_data
+            return response, geom_data
+
+
+        # Generate Change Log
+        change_log_rows = []
+        geojson_data = {
+            "type": "FeatureCollection",
+            "name": "Vegetation Change Report",
+            "features": []
+        }
+        count = 1
+        for i in range(len(self.observations)-1):
+            obs1 = self.observations[i]
+            obs2 = self.observations[i+1]
+            cl_row, geom_rows = change_log_row(obs1, obs2, count)
+            change_log_rows.append(cl_row)
+            geojson_data['features'].extend(geom_rows)
+            count +=1
+
+        if len(self.observations) > 2:
+            obs1 = self.observations[0]
+            obs2 = self.observations[-1]
+            cl_row, geom_rows = change_log_row(obs1, obs2, count, final=True)            
+            change_log_rows.append(cl_row)
+            geojson_data['features'].extend(geom_rows)
+
+        result['changeLog'] = change_log_rows
+        result['geojson'] = geojson_data
+
+        self.logger(result, 'change_report')
+
+
+
+
+
  
 
-                change_log = {
-                    'older_observation_date': obs2.date,
-                    'newer_observation_date': obs1.date,
-                    'older_observation': obs2,
-                    'newer_observation': obs1,
-                    'veg_loss_area': veg_loss_multipoly.area,
-                    'veg_growth_area': veg_growth_multipoly.area,
-                    'percent_veg_change': percent_change,
-                    'veg_loss_pixels': loss_change.sum(),
-                    'no_veg_change_pixels': (compiled_change == 0).sum(),
-                    'veg_growth_pixels': growth_change.sum(),
-                    'change_mask': compiled_change,
-                    'veg_growth_multipolygons': veg_growth_multipoly,
-                    'veg_loss_multipolygons': veg_loss_multipoly
-                }
-                change_log_rows.append(change_log)
-
-        self.veg_change_log = self.ChangeLog(
-            change_log_rows, 
-            geometry = 'veg_loss_multipolygons',
-            crs = self.observations[0].masks[forest_model_tag]['metadata']['crs']
-            )
-        
-        sub_log = self.veg_change_log[self.veg_change_log['newer_observation_date'] == max(self.veg_change_log['newer_observation_date'])]
-        line_log = sub_log[sub_log['older_observation_date'] == min(sub_log['older_observation_date'])]
-        self.logger('Mask displaying total vegetation change')
-        self.logger('Green: Collective Vegetaion Growth  |  Red: Collective Vegetation Loss')
-        self.logger(line_log.generate_change_image(0),'image')
-
-        sub_log = sub_log[['newer_observation_date','older_observation_date', 'percent_veg_change']]
-        sub_log.rename(columns={'newer_observation_date':'Most Recent Observation Date',
-                        'older_observation_date':'Historical Observation Date',
-                        'percent_veg_change':'Percentage of Historical Vegetation Remaining'
-                        }, inplace=True)
-        col_text = ''
-        for col in sub_log.columns:
-            col_text += str(col)
-            if col != sub_log.columns[-1]: col_text += ' | '
-        self.logger(col_text)
 
 
-        for row in sub_log.itertuples(index=False):
-            line = ''
-            line += '          ' + str(row[0]) + '         |'
-            line += '          ' + str(row[1]) + '         |'
-            line += '                     ' + str(row[2]) + '                    '
-            self.logger(line)
-        
-        
-    
+
+
+
+
+
 
 
 

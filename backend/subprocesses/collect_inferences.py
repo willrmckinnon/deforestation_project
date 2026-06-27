@@ -6,8 +6,7 @@ from utils.point_observation import ObservedArea
 
 
 # Basic Libraries
-
-
+ 
 def collect_inferences(params, logger):
     model_name = params['modelName']
     observation_strings = params['observations']
@@ -15,6 +14,7 @@ def collect_inferences(params, logger):
     lon = params['lng']
     sqkm = float(params['area'].split(' ')[0])
 
+    # Genertate the Masks
     try:
         config = load_config()
         if config['model_paths'][model_name]:
@@ -41,8 +41,16 @@ def collect_inferences(params, logger):
         )
 
         investigation.generate_masks()
-        logger('','complete')
 
     except Exception as e: 
-        logger(f'Inference failed from the following error: \n{e}','status')
-        logger('','complete')
+        logger(f'Failed to collect masks because of the following error: \n{e}','status')   
+
+
+    # Compare masks
+    try:
+        investigation.analyze_vegetation_change(model_name)
+    except Exception as e: 
+        logger(f'Time Analysis failed because of the following error: \n{e}','status')          
+
+    # Send Complete Message
+    logger('','complete')
