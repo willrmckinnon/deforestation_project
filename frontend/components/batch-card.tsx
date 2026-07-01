@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { Batch } from '@/lib/types'
 import { MapPin, Map, Cloud } from 'lucide-react'
 import { InfoCard } from '@/components/info-card'
-
+ 
 
 
 export function BatchCard({ batch }: { batch: Batch }) {
