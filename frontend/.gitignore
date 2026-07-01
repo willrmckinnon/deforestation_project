@@ -32,3 +32,8 @@ node_modules
 
 # Cache directory
 .next/
+
+
+
+# Builds
+out
