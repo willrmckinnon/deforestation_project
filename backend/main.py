@@ -2,16 +2,20 @@
 import os
 import queue
 import asyncio
+from utils.helper import load_config
 from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.websockets import WebSocketDisconnect
 import base64
 from io import BytesIO
 from time import sleep
 
 #Scripts
-from subprocesses.run_investigation import run_inv
-from subprocesses.collect_inferences import collect_inferences
+from subprocesses.collect_observations import collect_observations
+from subprocesses.run_inference import run_inference
 
+# Define the domains that this api might receive requests from
+ALLOWED_ORIGINS = load_config()['allowed_origins']
 
 #Set the Correct base directory to reference the other folders
 env = os.environ.copy()
@@ -19,6 +23,15 @@ env["PYTHONUNBUFFERED"] = "1"
 
 #Setup the app
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins= ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Image handling
 def image_to_base64(img):
@@ -52,7 +65,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if data['type'] == 'collect':
                 task = asyncio.create_task(
                     asyncio.to_thread(
-                        run_inv,
+                        collect_observations,
                         data['params']['latitude'],
                         data['params']['longitude'],
                         data['params']['area'],
@@ -65,7 +78,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger(f'Backend running model inferences on {num_observations} observations', 'status')
                 task = asyncio.create_task(
                     asyncio.to_thread(
-                        collect_inferences,
+                        run_inference,
                         data['params'],
                         logger
                     )

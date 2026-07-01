@@ -18,25 +18,26 @@ export function BatchCard({ batch }: { batch: Batch }) {
 
 
   return (
-    <div className="flex flex-1 w-full lg:h-full flex-col pr-2 md:pr-[3vw] md:flex-row lg:justify-between">
+    <div className="flex flex-1 w-full min-w-0 md:h-full flex-col md:flex-row lg:justify-between">
       
       {/*A spacer to center the image and compensate for the analysis panel */}
       {/*<div className='hidden md:flex md:w-[25vw]'></div>*/}
-      <div className='w-0'/>
+      <div className='hidden md:block w-0'/>
 
-
-      <div className="aspect-square items-center justify-center h-full rounded-xl shadow-2xl">
-        <div className="relative flex h-full items-center justify-center overflow-hidden rounded-xl border bg-muted">
-          {/*Image*/}
-          <img
-            src={displayedImage || '/placeholder.svg'}
-            alt="Observation"
-            className="h-full w-full object-contain"
-          />
-          {/*Coverage Icon*/}
-          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-background/85 px-1.5 py-0.5 text-[0.7rem] font-medium text-foreground backdrop-blur-sm">
-            <Cloud className="size-3 text-primary" />
-            {((1-batch.coverage)*100).toFixed(0)} %
+      <div className='pb-3 md:pb-0'>
+        <div className="aspect-square items-center justify-center w-full md:h-full rounded-xl  shadow-sm md:shadow-2xl">
+          <div className="relative flex h-full items-center justify-center overflow-hidden rounded-xl border bg-muted">
+            {/*Image*/}
+            <img
+              src={displayedImage || '/placeholder.svg'}
+              alt="Observation"
+              className="h-full w-full object-contain"
+            />
+            {/*Coverage Icon*/}
+            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-background/85 px-1.5 py-0.5 text-[0.7rem] font-medium text-foreground backdrop-blur-sm">
+              <Cloud className="size-3 text-primary" />
+              {((1-batch.coverage)*100).toFixed(0)} %
+            </div>
           </div>
         </div>
       </div>

@@ -9,6 +9,7 @@ export type SocketHandlers = {
   onOpen?: () => void
   onModelReturn?: (data: any) => void
   onChangeReport?: (data: any) => void
+  onEmptyBatch?: (data: any) => void
 }
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL!
@@ -67,9 +68,15 @@ export class InferenceSocket {
           handlers.onChangeReport?.(msg.data)
           break
 
+        case 'emptyBatch':
+          handlers.onEmptyBatch?.(msg.data)
+          break
+
         case 'complete':
+          console.log('Complete message received')
           handlers.onComplete?.()
           break
+
       }
     }
   }

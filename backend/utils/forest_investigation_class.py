@@ -26,7 +26,6 @@ class ForestInvestigation(Investigation):
             
         super().__init__(lat, lon, sqkm, models_to_inference, observation_increments, logger)
         
-        #self.analyze_vegetation_change(model_tag)
 
   
  

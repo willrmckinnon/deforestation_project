@@ -116,10 +116,15 @@ class Investigation():
         # Collect all following observations
         for year in self.observation_increments:
             new_target_date = first_year_date - timedelta(days = 365*year)
-            new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180], logger = self.logger) 
-            self.observations.append(new_obs)
-            batch = self.package_obs_batch(obs_index, new_obs)
-            self.logger(batch,'batch')
+            try:    
+                new_obs = point_observation.collect_observation(self.lat, self.lon, self.sqkm, new_target_date, windows = [45, 90, 180], logger = self.logger) 
+                self.observations.append(new_obs)       
+                batch = self.package_obs_batch(obs_index, new_obs)
+                self.logger(batch,'batch')
+            except ValueError as e:
+                self.logger(f'An error occured when collecting batch for target date {new_target_date}: {e}', 'status')
+                self.logger(str(new_target_date), 'emptyBatch') 
+                continue
             obs_index +=1
         self.logger('Completed observations for given areas', 'status')
 

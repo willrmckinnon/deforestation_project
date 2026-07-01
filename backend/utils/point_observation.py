@@ -13,6 +13,7 @@ from PIL import Image
 from io import BytesIO
 import rioxarray as rio
 import planetary_computer
+from math import log as ln
 from shapely import from_wkt
 import matplotlib.pyplot as plt
 from pystac_client import Client
@@ -188,16 +189,12 @@ class ObservedArea:
         return image_array, xx
     
     #Method to quickly return the visual as a PIL image
-    def get_image(self,
-                    mask_type = None,
-                    saturation = 2,
-                    pos_color = [255, 0, 0],
-                    neg_color = [0, 255, 0]
-                   ):
+    def get_image(self, mask_type = None, target_sat = 75):
         data = self.stack(['B02','B03','B04'])[0]
         data =crop32(np.transpose(data,(2,0,1)))
         data = np.transpose(data,(1,2,0))
         norm_data = np.zeros(data.shape)
+
 
         for i in range(data.shape[2]):
             band = data[:,:,i]
@@ -205,7 +202,12 @@ class ObservedArea:
             band = (255 * band).astype(np.uint8)
             norm_data[:,:,i] = band
         norm_data = norm_data[:,:,[2,1,0]]
-        norm_data = np.clip((norm_data * saturation),0,255).astype(np.uint8)
+
+
+        rat = target_sat/norm_data.mean()
+        #exp = ln(target_sat)/(ln(norm_data.mean())+1e-6)
+        #norm_data = np.power(norm_data, exp)
+        norm_data = np.clip((norm_data*rat),0,255).astype(np.uint8)
 
         # Add a mask if requested and return
         if mask_type != None:

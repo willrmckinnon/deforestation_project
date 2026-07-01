@@ -8,17 +8,14 @@ import { Field } from './inference-form'
 import { MODELS } from '@/lib/inference-engine'
 import { Button } from '@/components/ui/button'
 import { ReportTile, ReportCard } from '@/components/ui/report-card'
+import { DesktopAnalysisPanel, MobileAnalysisPanel } from '@/components/ui/analysis-panel'
 import {
   Loader2,
   CheckCircle2,
   Layers,
   Gauge,
   Leaf,
-  MapPinned,
-  ChevronLeft,
-  ChevronRight,
-  BrainCircuit,
-  Play,
+  DatabaseZap,
 } from 'lucide-react'
 
 function Stat({
@@ -61,7 +58,7 @@ export function InvestigationView({ run, onExecute }: Props) {
   const prevCount = useRef(run.batches.length)
   const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false)
   const [model, setModel] = useState(MODELS[0])
-  const valid = model != MODELS[0]
+  const valid = (model != MODELS[0]) && (run.status == 'complete')
   const activeBatch =   activeBatchIdx !== null ? run.batches[activeBatchIdx] : null
   const activeReport = run.reports.find(report => report.title === activeReportTitle)
   const [analysisCount, setAnalysisCount] = useState(0)
@@ -118,7 +115,7 @@ export function InvestigationView({ run, onExecute }: Props) {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="flex flex-row justify-between items-center border-b border-border bg-card pl-20 py-3 shadow-sm">
+      <header className="flex flex-row justify-between items-center border-b border-border bg-card pl-15 md:pl-20 py-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-1">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -179,11 +176,11 @@ export function InvestigationView({ run, onExecute }: Props) {
         </div>
 
 
-        <div className="flex items-center gap-2 md:pl-45 pr-10">
+        <div className="flex items-center gap-2 md:pl-45 pr-3 md:pr-10">
           <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
             <Leaf className="size-4" />
           </div>
-          <span className="text-sm font-semibold text-sidebar-foreground">
+          <span className="hidden md:block md:text-sm md:font-semibold md:text-sidebar-foreground">
             Verdant
           </span>
         </div>
@@ -193,198 +190,142 @@ export function InvestigationView({ run, onExecute }: Props) {
 
       <div className="flex flex-1 min-h-0 flex-row">
 
-        <div className="flex flex-1 min-h-0 flex-col">
+        <div className="flex flex-1 min-h-0 min-w-0 flex-col">
           {/* Observation tabs */}
           <div
             ref={tabsRef}
-            className="flex items-center justify-center gap-1.5 overflow-x-auto  px-4 pt-2"
+            className="w-full overflow-x-auto"
           >
-            {run.batches.map((batch, idx) => (
-              <button
-                key={batch.id}
-                type="button"
-                onClick={() => {
-                  setActiveBatchIdx(idx)
-                  setActiveReportTitle(null)
-                }}
-                className={cn(
-                  'flex flex-col shrink-0 items-center gap-2 rounded-lg  px-3 py-1.5 text-sm transition-colors',
-                  idx === activeBatchIdx
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : ' text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-
-                <div className="h-5 md:h-15 w-10 md:w-30 overflow-hidden rounded-lg">
-                  <img
-                    src={batch.image || '/placeholder.svg'}
-                    alt="Observation"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-
-                <div className='flex flex-row items-center'>
-                  <span className="font-medium ">
-                    {batch.date}
-                  </span>
-                  {batch.status === 'loading' ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (<div className='hidden'></div>)}
-
-                </div>
-
-              </button>
-            ))}
-
-
-
-
-
-            {run.reports.map((report) =>(
-              <button
-                key={report.title}
-                type="button"
-                onClick={() => {
-                  setActiveReportTitle(report.title)
-                  setActiveBatchIdx(null)
-                }}
-                className={cn(
-                  'flex flex-col shrink-0 items-center gap-2 rounded-lg  px-3 py-1.5 text-sm transition-colors',
-                  report.title === activeReportTitle
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : ' text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <div className="h-5 md:h-15 w-10 md:w-30 overflow-hidden rounded-lg">
-                  {ReportTile(report.type)}
-                </div>
-                <div className='flex flex-row items-center'>
-                  <span className="font-medium ">
-                    {report.title}
-                  </span>
-                </div>
-              </button>
-            ))}
-
-
-            {/* Tab for loading analyses */}
-            <div className='px-10'>
-              {run.status === 'analyzing' ? (
-                <Loader2 className="size-10 animate-spin" />
-              ) : (<div className='hidden'></div>)}
-            </div>
-
-
-            {run.status === 'streaming' && (
-              <span className="flex shrink-0 items-center h-15 gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground">
-                <Loader2 className="size-3 animate-spin" />
-                Awaiting next observation…
-              </span>
-            )}
-          </div>
-          {/* END Observation content */}
-
-
-
-
-
-          <div className='flex flex-1 min-h-0 flex-row'>  
-                 
-            {/* Analysis Panel */}
-            <div className='relative flex min-h-0'>
-              <button 
-              onClick={() => setAnalysisPanelOpen(!analysisPanelOpen)} 
-              className='flex flex-col w-5 md:w-[3vw] items-center justify-center hover:bg-muted'
-              >
-
-                {analysisPanelOpen ? <ChevronLeft /> : <ChevronRight />}
-                <div className="mt-4 px-3 flex flex-col gap-4 ">
-                  <span className="mt-7 mb-50 -rotate-90 whitespace-nowrap text-xs font-medium tracking-[0.2em] text-muted-foreground">
-                    ANALYSIS
-                  </span>            
-                </div>
-              </button>
-
-              
-
-              
-
-              <div 
-                className={`
-                  absolute left-[3vw] top-0
-                  h-[calc(100%-30px)] w-90 md:w-[25vw]
-                  rounded-xl border bg-card p-4
-                  transition-transform duration-300 ease-in-out
-                  z-50 shadow-lg
-                  ${analysisPanelOpen ? "translate-x-0" : "-translate-x-[28vw]"}
-                `}
-              >
-
-                <div>
-                  <h2 className="text-base font-semibold text-foreground">
-                    Run Analysis
-                  </h2>
-                  <p className="text-xs text-muted-foreground italic">
-                    Analyses Run:{' '}
-                    <span className="font-medium text-muted-foreground italic">
-                      {analysisCount}
-                    </span>{' '}
-                  </p>
-                </div>
-
-
-
-                <div className="flex flex-row gap-2.5 p-3">
-                  
-                  <div className="inline-flex self-start shrink-0 items-center rounded-md gap-1 text-[0.7rem] text-muted-foreground tabular-nums border px-2 py-0.25 shadow-sm">
-                    <MapPinned className="size-3" />
-
+            <div className="flex w-max min-w-full justify-center gap-1.5 px-4 pt-2">
+              {run.batches.map((batch, idx) => (
+                batch.emptyBatch? (
+                  <div
+                    key={batch.id}
+                    className='flex flex-col shrink-0 items-center gap-2 rounded-lg  px-3 py-1.5 text-sm transition-colors text-muted-foreground'
+                  >
+                    <div className="flex flex-col h-5 md:h-15 w-10 md:w-30 overflow-hidden bg-card border border-muted justify-center items-center rounded-lg">
+                      <DatabaseZap className='size-5'/>
+                      <div className='hidden md:flex md:text-xs'>No Data Available</div>
+                    </div>
+                    <div className='flex flex-row items-center'>
+                      <span className="font-medium ">
+                        {batch.date}
+                      </span>
+                    </div>
                   </div>
+                  
 
-                </div>
+                ) : (
+                  <button
+                    key={batch.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveBatchIdx(idx)
+                      setActiveReportTitle(null)
+                    }}
+                    className={cn(
+                      'flex flex-col shrink-0 items-center gap-2 rounded-lg  px-3 py-1.5 text-sm transition-colors',
+                      idx === activeBatchIdx
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : ' text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
 
-                <div className='px-4'>
-                  <span className = "text-[11px] italic px-2 pb-2 text-center text-justify leading-[13px] block">
-                    Select a model from the dropdown and run to see analysis on each observation:
-                  </span>
+                    <div className="h-5 md:h-15 w-10 md:w-30 overflow-hidden rounded-lg">
+                      <img
+                        src={batch.image || '/placeholder.svg'}
+                        alt="Observation"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
 
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <Field label="Run a Model" icon={<BrainCircuit className="size-4" />}>
-                      <select
-                        className={cn(inputCls, 'appearance-none')}
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                      >
-                        {MODELS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      disabled={!valid}
-                      className="mt-1 h-11 w-full text-sm"
-                    >
-                      <Play className="size-4" />
-                      Run Analysis
-                    </Button>
-                  </form>
-                </div>          
+                    <div className='flex flex-row items-center'>
+                      <span className="font-medium ">
+                        {batch.date}
+                      </span>
+                      {batch.status === 'loading' ? (
+                        <Loader2 className="size-5 animate-spin" />
+                      ) : (<div className='hidden'></div>)}
+                    </div>
+                  </button>
+                )
+                
+
+              ))}
+
+
+
+
+
+              {run.reports.map((report) =>(
+                <button
+                  key={report.title}
+                  type="button"
+                  onClick={() => {
+                    setActiveReportTitle(report.title)
+                    setActiveBatchIdx(null)
+                  }}
+                  className={cn(
+                    'flex flex-col shrink-0 items-center gap-2 rounded-lg  px-3 py-1.5 text-sm transition-colors',
+                    report.title === activeReportTitle
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : ' text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  <div className="h-5 md:h-15 w-10 md:w-30 overflow-hidden rounded-lg">
+                    {ReportTile(report.type)}
+                  </div>
+                  <div className='flex flex-row items-center'>
+                    <span className="font-medium ">
+                      {report.title}
+                    </span>
+                  </div>
+                </button>
+              ))}
+
+
+              {/* Tab for loading analyses */}
+              <div className='flex items-center'>
+                {run.status === 'analyzing' ? (
+                  <div className='flex px-10 md:pb-5 items-center'>
+                    <Loader2 className="size-10 animate-spin" />
+                  </div>
+                ) : (<div className='hidden w-0'></div>)}
               </div>
+
+              {/* Tab for loading */}
+              {run.status === 'streaming' && (
+                <div className = 'pt-1'>
+                  <span className="flex shrink-0 items-center h-15 gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" />
+                    Awaiting next observation…
+                  </span>
+                </div>
+              )}
             </div>
+          </div>
+          {/* END Observation tab content */}
+
+
+
+
+
+          <div className='flex flex-1 min-h-0 flex-row'>
+
+            {/* Analysis Panel */}
+            <div className='hidden md:flex'>
+              <DesktopAnalysisPanel run={run} onExecute={onExecute}/>  
+            </div> 
+            <div className='flex md:hidden'>
+              <MobileAnalysisPanel run={run} onExecute={onExecute}/>  
+            </div>  
             {/* END Analysis Panel */}
 
 
             {/* Observation content */}
-            
-            <div className="flex flex-1 min-h-0 py-4">
+            <div className="flex flex-1 pr-[5vw] md:pr-[3vw] pl-[5vw] md:pl-0 min-w-0 md:min-h-0 overflow-y-auto py-4">
               {activeReport ?(
-                <div className="flex flex-1 min-h-0">
+                <div className="flex flex-1 min-w-0 min-h-0">
                   <ReportCard report={activeReport} />
                 </div>                
               ) : !activeBatch ? (
@@ -396,7 +337,7 @@ export function InvestigationView({ run, onExecute }: Props) {
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-1 min-h-0">
+                <div className="flex flex-1 min-w-0 md:min-h-0">
                   <BatchCard batch={activeBatch} />
                 </div>
               )}

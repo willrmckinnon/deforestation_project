@@ -53,7 +53,7 @@ export function ReportTile (reportType: string){
     return (
     <div className="flex flex-col h-5 md:h-15 w-10 md:w-30 justify-center items-center bg-card rounded-lg">
         <Icon className="h-7 w-7" />
-        <span className='italic text-xs text-primary pt-1.5'>{title}</span>
+        <span className='hidden md:block italic text-xs text-primary pt-1.5'>{title}</span>
     </div>
     );
 }
@@ -62,8 +62,8 @@ export function ReportTile (reportType: string){
 export function ReportCard({ report }: { report: Report }) {
   const [datesOpen, setDatesOpen] = useState(false)
   return (
-        <div className="flex flex-1 w-full lg:h-full flex-col px-2 md:px-10 md:flex-row lg:justify-between">
-            <div className='flex flex-1 flex-col w-full h-full px-3 py-2 md:px-8 md:py-4 bg-card rounded-xl border shadow-xl'>
+        <div className="flex flex-1 w-full lg:h-full flex-col md:flex-row lg:justify-between">
+            <div className='flex flex-1 flex-col w-full h-full px-4 py-3 md:px-8 md:py-4 bg-card rounded-xl border shadow-xl'>
                 
                 {/* Header */}
                 <div className='relative'>
@@ -71,12 +71,12 @@ export function ReportCard({ report }: { report: Report }) {
                         <h2 className="text-base font-semibold text-foreground">
                             {report.title}
                         </h2>
-                        <span className="text-xs italic font-medium text-muted-foreground">
+                        <span className="text-[10px] md:text-xs italic font-medium text-muted-foreground">
                             {report.data.dateRanges}
                         </span>
                     </div>
                     <button 
-                    className="absolute right-0 top-0 w-35 z-100 items-center rounded-md gap-1 text-xs text-muted-foreground tabular-nums border px-2 py-0.25 shadow-sm"
+                    className="absolute right-0 top-0 w-35 z-[80] items-center rounded-md gap-1 text-xs text-muted-foreground tabular-nums border px-2 py-0.25 shadow-sm"
                     onClick={() => setDatesOpen(!datesOpen)} 
                     >
                         <div className='flex flex-col items-center'>
@@ -87,7 +87,7 @@ export function ReportCard({ report }: { report: Report }) {
 
                             {datesOpen ? (
                                 report.data.dateList.map((date: string,i:number) => (
-                                    <span key={i}>{date}</span>
+                                    <span className='text-[8px] md:text-xs' key={i}>{date}</span>
                                 ))) : (<div/>)}
                         </div>
 
@@ -96,7 +96,7 @@ export function ReportCard({ report }: { report: Report }) {
                 </div>
 
                 {/* Change Report Section */}
-                <div className='p-10'>
+                <div className='py-10 md:p-10'>
                     <ChangeGrid changeLog={report.data.changeLog} />
                 </div>
                 <div className='flex justify-center'>

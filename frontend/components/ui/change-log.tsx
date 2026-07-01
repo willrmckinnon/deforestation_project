@@ -61,7 +61,7 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
       <div
         className="grid border-b py-2"
         style={{
-          gridTemplateColumns: `160px repeat(${columnCount}, 1fr)`,
+          gridTemplateColumns: `65px repeat(${columnCount}, 1fr)`,
         }}
       >
         <div />
@@ -73,33 +73,33 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
                 key={idx}
                 className="flex flex-col text-center"
               >
-                <div className="text-sm font-bold">
+                <div className="text-[10px] md:text-sm font-bold">
                   Change {idx + 1}
                 </div>
 
-                <div className="text-xs font-normal text-gray-500">
+                <div className="text-[8px] md:text-xs font-normal text-gray-500">
                   {group.label}
                 </div>
               </div>
             ))}
 
             <div className="flex flex-col text-center">
-              <div className="text-sm font-bold">
+              <div className="text-[10px] md:text-sm font-bold">
                 Summary
               </div>
 
-              <div className="text-xs font-normal text-gray-500">
+              <div className="text-[10px] md:text-xs font-normal text-gray-500">
                 {changeLog[summaryGroupIdx].label}
               </div>
             </div>
           </>
         ) : (
           <div className="flex flex-col text-center">
-            <div className="text-sm font-bold">
+            <div className="text-[10px] md:text-sm font-bold">
               Summary
             </div>
 
-            <div className="text-xs font-normal text-gray-500">
+            <div className="text-[8px] md:text-sm font-normal text-gray-500">
               {changeLog[0]?.label}
             </div>
           </div>
@@ -113,9 +113,9 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
         return (
           <div
             key={cls}
-            className="grid py-2 border-b text-xs"
+            className="grid py-2 border-b text-[10px] md:text-xs"
             style={{
-              gridTemplateColumns: `160px repeat(${columnCount}, 1fr)`,
+              gridTemplateColumns: `65px repeat(${columnCount}, 1fr)`,
             }}
           >
             <div className="font-medium">
@@ -141,7 +141,7 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
                 return (
                   <div
                     key={idx}
-                    className="flex items-center justify-center gap-3"
+                    className="flex items-center justify-center gap-3 text-[8px] md:text-xs"
                   >
                     <div className="shrink-0">
                       {cell.changeDirection === 'up' ? (
@@ -152,7 +152,7 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
                     </div>
 
                     <div className="flex flex-col leading-tight">
-                      <div className="text-xs">
+                      <div className="">
                         {cell.percentChange}
                       </div>
 
@@ -193,11 +193,11 @@ export const ChangeGrid: React.FC<Props> = ({ changeLog }) => {
                   </div>
 
                   <div className="flex flex-col leading-tight">
-                    <div className="text-xs">
+                    <div className="text-[8px] md:text-xs">
                       {cell.percentChange}
                     </div>
 
-                    <div className="text-gray-500">
+                    <div className="text-[8px] md:text-xs text-gray-500">
                       {cell.sqkmChange}
                     </div>
                   </div>

@@ -10,7 +10,7 @@ happen on the models feature branch
 from utils.forest_investigation_class import ForestInvestigation
 
  
-def run_inv(lat, lon, sqkm, num_obs, logger = print):
+def collect_observations(lat, lon, sqkm, num_obs, logger = print):
     sqkm = sqkm.split(' ')[0]
     lat, lon = map(float, [lat, lon])
     sqkm, num_obs = map(int, [sqkm, num_obs])

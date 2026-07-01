@@ -7,7 +7,7 @@ from utils.point_observation import ObservedArea
 
 # Basic Libraries
  
-def collect_inferences(params, logger):
+def run_inference(params, logger):
     model_name = params['modelName']
     observation_strings = params['observations']
     lat = params['lat']

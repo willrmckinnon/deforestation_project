@@ -70,8 +70,8 @@ export function InferenceForm({ onExecute }: Props) {
     {
       label: 'Congo',
       name: 'Congo',
-      latitude: '1.6063',
-      longitude: '25.7408',
+      latitude: '-4.155',
+      longitude: '28.872',
       area: AREA_SIZES[1],
       num_obs: NUM_OBSERVATIONS[2],
     },

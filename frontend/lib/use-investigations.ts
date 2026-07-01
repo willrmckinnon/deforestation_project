@@ -1,7 +1,7 @@
 'use client'
  
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { InferenceParams, Run, Info } from './types'
+import type { InferenceParams, Run, Info, Batch } from './types'
 import { makeBatch } from './inference-engine'
 import {InferenceSocket} from './websocket'
 
@@ -39,6 +39,42 @@ export function useInvestigations() {
                 ? {
                     ...r,
                     batches: [...r.batches, batch],
+                  }
+                : r,
+            ),
+          )
+        },
+
+        onEmptyBatch: (msg) => {
+          const new_id =
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : Math.random().toString(36).substring(2) + Date.now().toString(36)
+
+          const eBatch: Batch = {
+            id: new_id,
+            index: 0,
+            label: '',
+            image: '',
+            date: msg,
+            receivedAt: 0,
+            area: '',
+            lat: 0,
+            lng: 0,
+            coverage: 0,
+            observation: '',
+            masks: [],
+            metadata: [],
+            status: 'complete',
+            emptyBatch: true
+          }
+
+          setRuns((prev) =>
+            prev.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    batches: [...r.batches, eBatch],
                   }
                 : r,
             ),
@@ -154,7 +190,9 @@ export function useInvestigations() {
     }
  
     // Code for sending the imformation to the backend
-    const inferencePayload = run.batches.map(batch => ({
+    const inferencePayload = run.batches
+    .filter(batch => !batch.emptyBatch)
+    .map(batch => ({
       batchId: batch.id,
       observation: batch.observation,
     }))

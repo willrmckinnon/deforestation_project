@@ -1,4 +1,3 @@
-import { float } from "@/v_1_node_modules/@emnapi/runtime/dist/emnapi.cjs.min"
 
 export type SegmentClass = {
   id: string
@@ -45,12 +44,14 @@ export type Batch = {
   area: string
   lat: number
   lng: number
-  coverage: float
+  coverage: number
   observation: any
   masks: Mask[]
   metadata: Info[]
   status: BatchStatus
+  emptyBatch: Boolean
 }
+
 
 export type InferenceParams = {
   name: string
