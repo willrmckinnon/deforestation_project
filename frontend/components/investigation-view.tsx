@@ -1,5 +1,6 @@
 'use client'
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import type { Run } from '@/lib/types'
@@ -175,15 +176,25 @@ export function InvestigationView({ run, onExecute }: Props) {
           />
         </div>
 
-
-        <div className="flex items-center gap-2 md:pl-45 pr-3 md:pr-10">
+        <Link
+          href="https://will-mckinnon.com"
+          className="flex items-center gap-2 md:pl-45 pr-3 md:pr-10 hover:opacity-90 hover:text-shadow-md"
+        >
           <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
             <Leaf className="size-4" />
           </div>
-          <span className="hidden md:block md:text-sm md:font-semibold md:text-sidebar-foreground">
-            Verdant
-          </span>
-        </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-sidebar-foreground ">
+              Will McKinnon
+            </h2>
+            <p className="!text-[8px] uppercase tracking-[0.25em] !text-stone">
+              Verdant
+            </p>
+          </div>
+        </Link>
+
+
 
 
       </header>

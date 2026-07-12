@@ -1,11 +1,11 @@
 'use client'
-
+import Link from "next/link";
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AREA_SIZES, NUM_OBSERVATIONS } from '@/lib/inference-engine'
 import type { InferenceParams } from '@/lib/types'
-import { Play, Satellite, MapPin, Cpu, Grid3x3 } from 'lucide-react'
+import { Play, Satellite, MapPin, Cpu, Grid3x3, Leaf } from 'lucide-react'
 
 type Props = {onExecute: (params: InferenceParams) => void}
  
@@ -99,6 +99,29 @@ export function InferenceForm({ onExecute }: Props) {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col justify-center px-6 py-10">
+
+      <div className="absolute top-0 right-0 pt-4">
+        <Link
+          href="https://will-mckinnon.com"
+          className="flex items-center gap-2 md:pl-45 pr-3 md:pr-10 hover:opacity-90 hover:text-shadow-md"
+        >
+          <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+            <Leaf className="size-4" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-sidebar-foreground ">
+              Will McKinnon
+            </h2>
+            <p className="!text-[8px] uppercase tracking-[0.25em] !text-stone">
+              Verdant
+            </p>
+          </div>
+        </Link>
+
+      </div>
+
+
       <div className="mb-8 flex flex-col items-start gap-3">
         <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Satellite className="size-6" />

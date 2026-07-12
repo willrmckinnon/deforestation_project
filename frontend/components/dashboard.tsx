@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { Sidebar } from './sidebar'
 import { PanelLeftOpen } from 'lucide-react'
+import { WelcomeModal } from '@/components/instructions'
 import { InferenceForm } from './inference-form'
 import { InvestigationView } from './investigation-view'
 import { useInvestigations } from '@/lib/use-investigations'
 import type { InferenceParams } from '@/lib/types'
  
 export function Dashboard() {
+  const [showWelcome, setShowWelcome] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { runs, activeRun, activeRunId, startRun, selectRun, inferenceModel } = useInvestigations()
 
@@ -22,6 +24,12 @@ export function Dashboard() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
+      
+      <WelcomeModal
+        open={showWelcome}
+        onClose={() => setShowWelcome(false)}
+      />      
+      
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
