@@ -1,13 +1,9 @@
 import type { Batch } from './types'
 
 export function makeBatch(msg: any): Batch {
-  const id =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : Math.random().toString(36).substring(2) + Date.now().toString(36)
 
   return {
-    id: id,
+    id: msg.id,
     index: msg.index,
     label: msg.batch_id,
     date: msg.date,

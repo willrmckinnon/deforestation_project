@@ -10,6 +10,25 @@ import base64
 from io import BytesIO
 from time import sleep
 
+
+#####################################################################
+# Retrofit for saving
+import json
+from pathlib import Path
+
+recorded_messages = []
+
+
+def save_recording(messages, run_name):
+    output_dir = Path("saved_runs")
+    output_dir.mkdir(exist_ok=True)
+    path = output_dir / f"{run_name}.json"
+    with open(path, "w") as f:
+        json.dump(messages, f, indent=2)
+
+
+#####################################################################
+
 #Scripts
 from subprocesses.collect_observations import collect_observations
 from subprocesses.run_inference import run_inference
@@ -46,12 +65,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
     log_queue = queue.Queue()
     def logger(message, type='text', meta = ''):
-
-        log_queue.put({
+        payload = {
             "type": type,
             "data": message,
             "meta": meta
-        })
+        }
+
+        recorded_messages.append(payload)
+        log_queue.put(payload)
+        if type == 'complete': save_recording(recorded_messages, "peru_collection")
+
+
  
     await websocket.accept()
     try:

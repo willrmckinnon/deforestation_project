@@ -69,6 +69,7 @@ export type Run = {
   batches: Batch[]
   expectedBatches: number
   reports: Report[]
+  location: string
 } 
 
 export type ModelInferenceParams = {
@@ -80,6 +81,20 @@ export type ModelInferenceParams = {
     batchId: string
     observation: any
   }[]
+}
+
+
+
+
+export type Preset = {
+  label: string
+  name: string
+  latitude: string
+  longitude: string
+  area: string
+  num_obs: string
+  iconUrl: string
+  country: string
 }
 
 
