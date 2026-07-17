@@ -19,6 +19,14 @@ import {
   DatabaseZap,
 } from 'lucide-react'
 
+// Help Button Imports
+import { HelpBubble } from '@/components/ui/help-bubble'
+import { useRunHelp, type HelpStepId } from '@/components/ui/use-run-help'
+
+
+
+
+
 function Stat({
   icon,
   label,
@@ -45,7 +53,8 @@ function Stat({
 
 {/* formatting for input*/}
 const inputCls =
-  'h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30'
+`h-10 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors 
+placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30`
 
 type Props = {
   run: Run 
@@ -77,6 +86,14 @@ export function InvestigationView({ run, onExecute }: Props) {
 
     return (max - min) / msPerYear
   }, [run.batches])
+  
+  // Help Buttons
+  const { dismissHelp, isHelpDismissed } = useRunHelp(run.id)
+  const showObservationHelp = run.status === 'complete' && !isHelpDismissed('select-observation')
+
+  function handleObservationHelpClose() {
+    dismissHelp('select-observation')
+  }
 
 
   // When a new batch arrives, auto-focus it the first time
@@ -118,9 +135,9 @@ export function InvestigationView({ run, onExecute }: Props) {
       {/* Header */}
       <header className="flex flex-row justify-between items-center border-b border-border bg-card pl-15 md:pl-20 py-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-1">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">
+          <div className="min-w-0 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-xl max-w-[45vw] md:max-w-[30vw] font-semibold tracking-tight truncate text-foreground">
                 {run.params.name}
               </h1>
               <span
@@ -149,7 +166,7 @@ export function InvestigationView({ run, onExecute }: Props) {
                 )}
               </span>
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="hidden md:flex mt-0.5 text-sm text-muted-foreground">
               {run.params.area}
             </p>
           </div>
@@ -325,11 +342,38 @@ export function InvestigationView({ run, onExecute }: Props) {
 
             {/* Analysis Panel */}
             <div className='hidden md:flex'>
-              <DesktopAnalysisPanel run={run} onExecute={onExecute}/>  
+              <DesktopAnalysisPanel run={run} onExecute={onExecute} onPromptedAction={handleObservationHelpClose}/>  
+              {showObservationHelp && (
+                <HelpBubble
+                  title="Ready for Analysis!"
+                  position='with-desktop-analysis'
+                  onClose={() => dismissHelp('select-observation')}
+                >
+                  Your observations are collected, select the "Analysis"
+                  tab to the left and run a scenerio to evaluate each
+                  observation.
+                </HelpBubble>
+              )}
             </div> 
             <div className='flex md:hidden'>
-              <MobileAnalysisPanel run={run} onExecute={onExecute}/>  
+              <MobileAnalysisPanel run={run} onExecute={onExecute} onPromptedAction={handleObservationHelpClose}/>  
+              {showObservationHelp && (
+                <HelpBubble
+                  title="Ready for Analysis!"
+                  position='with-mobile-analysis'
+                  onClose={() => dismissHelp('select-observation')}
+                >
+                  Your observations are collected, select the "Analysis"
+                  button below and run a scenerio to evaluate each
+                  observation.
+                </HelpBubble>
+              )}
             </div>  
+
+
+
+
+
             {/* END Analysis Panel */}
 
 
@@ -349,7 +393,7 @@ export function InvestigationView({ run, onExecute }: Props) {
                 </div>
               ) : (
                 <div className="flex flex-1 min-w-0 md:min-h-0">
-                  <BatchCard batch={activeBatch} />
+                  <BatchCard run={run} batch={activeBatch } />
                 </div>
               )}
             </div>

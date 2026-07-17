@@ -92,7 +92,7 @@ export function InferenceForm({ onExecute }: Props) {
 
       </div>
 
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[75vh] w-[85vw] md:h-[80vh] md:w-[50vw] lg:h-[70vh] lg:w-[40vw] flex flex-col">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[75vh] w-[85vw] md:h-[80vh] md:w-[50vw] 2xl:h-[70vh] 2xl:w-[40vw] flex flex-col">
         <div className="mb-4 md:mb-8 flex flex-col items-start gap-3">
           <div className="flex size-8 md:size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Satellite className="size-5 md:size-6" />

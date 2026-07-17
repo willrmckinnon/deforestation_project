@@ -62,7 +62,7 @@ export function ReportTile (reportType: string){
 export function ReportCard({ report }: { report: Report }) {
   const [datesOpen, setDatesOpen] = useState(false)
   return (
-        <div className="flex flex-1 w-full lg:h-full flex-col md:flex-row lg:justify-between">
+        <div className="flex flex-1 w-full lg:h-full flex-col md:mx-[4vw] md:flex-row lg:justify-between">
             <div className='flex flex-1 flex-col w-full h-full px-4 py-3 md:px-8 md:py-4 bg-card rounded-xl border shadow-xl'>
                 
                 {/* Header */}

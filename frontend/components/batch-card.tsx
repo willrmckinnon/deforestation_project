@@ -1,13 +1,21 @@
 'use client'
 
-import { useState } from 'react'
-import type { Batch } from '@/lib/types'
+import { useEffect, useState } from 'react'
+import type { Run, Batch } from '@/lib/types'
 import { MapPin, Map, Cloud } from 'lucide-react'
 import { InfoCard } from '@/components/info-card'
 
+// Help Button Imports
+import { HelpBubble } from '@/components/ui/help-bubble'
+import { useRunHelp, type HelpStepId } from '@/components/ui/use-run-help'
+
+type Props = {
+  run: Run 
+  batch: Batch
+}
 
 
-export function BatchCard({ batch }: { batch: Batch }) {
+export function BatchCard({ run, batch }: Props) {
   
   const [selectedMaskIdx, setSelectedMaskIdx] = useState<number | null>(null)
   const displayedImage =
@@ -16,6 +24,18 @@ export function BatchCard({ batch }: { batch: Batch }) {
       : batch.masks[selectedMaskIdx]?.image
   const noAnalyticsMessage: string = 'No Analytics to display \n Run analysis by clicking on the left panel to see results'
 
+  // Help Buttons
+  const { dismissHelp, isHelpDismissed } = useRunHelp(run.id)
+  const [prepAnalysisHelp, setPrepAnalysisHelp] = useState(false)
+  useEffect(() => {if (run.status == 'analyzing'){setPrepAnalysisHelp(true)}}, [run.status])
+  const showAnalysisHelp = batch.status == 'complete' && prepAnalysisHelp && !isHelpDismissed('analysis-help')
+
+  function handleMaskSelection (idx: number) {
+    setSelectedMaskIdx(idx)
+    dismissHelp('analysis-help')
+  }
+
+  
 
   return (
     <div className="flex flex-1 w-full min-w-0 md:h-full flex-col md:flex-row lg:justify-between">
@@ -81,15 +101,25 @@ export function BatchCard({ batch }: { batch: Batch }) {
           </div>
         </div>
 
-      
+        {showAnalysisHelp && (
+          <HelpBubble
+            title="Select your View"
+            position='with-masks'
+            onClose={() => dismissHelp('analysis-help')}
+          >
+            Now that you ran an analysis, you can view your observations
+            through that mask. Select a mask to view.
+          </HelpBubble>
+        )}
 
         {/*Section for mask buttons */}
         {batch.masks.length > 0 && (
-          <div className="flex flex-row, pb-3">
-            <span className = "flex items-center border-r border-border pl-10 pr-0 pr-3 text-[11px] italic leading-[13px]">
-              LAYERS
+          <div className="flex flex-row py-3 justify-center">
+            <span className = "flex text-wraps items-center border-r border-border pl-10 pr-0 pr-3 text-[12px] italic leading-[13px]">
+              SELECT 
+              VISUAL LAYER
             </span>
-            <div className="flex flex-wrap gap-2 px-2">
+            <div className="flex flex-col gap-2 px-2">
               <button
                 type="button"
                 onClick={() => setSelectedMaskIdx(null)}
@@ -106,7 +136,7 @@ export function BatchCard({ batch }: { batch: Batch }) {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setSelectedMaskIdx(idx)}
+                  onClick={() => handleMaskSelection(idx)}
                   className={
                     selectedMaskIdx === idx
                       ? 'rounded-md bg-primary px-3 py-1 text-xs text-primary-foreground'
