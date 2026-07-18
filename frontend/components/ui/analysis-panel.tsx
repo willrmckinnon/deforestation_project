@@ -14,6 +14,9 @@ import {
   Play,
 } from 'lucide-react'
 
+// Help Button Imports
+import { HelpBubble } from '@/components/ui/help-bubble'
+import { useRunHelp, type HelpStepId } from '@/components/ui/use-run-help'
 
 
 
@@ -25,33 +28,46 @@ const inputCls =
 type Props = {
   run: Run 
   onExecute: (params: Run, model: string) => void
+  onPromptedAction?: () => void
 }
 
 
-export function MobileAnalysisPanel({ run, onExecute }: Props) {
+export function MobileAnalysisPanel({ run, onExecute, onPromptedAction }: Props) {
     const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false)
     const [model, setModel] = useState(MODELS[0])
     const valid = (model != MODELS[0]) && (run.status == 'complete')
     const [analysisCount, setAnalysisCount] = useState(0)
-
+    // Help Button
+    const { dismissHelp, isHelpDismissed } = useRunHelp(run.id)
+    const analysisSetupHelp = analysisPanelOpen && !isHelpDismissed('analysis-setup')
 
     // Handle inferencing
     function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!valid) return
-    console.log('Model Inference Started')
-    setAnalysisCount((prev => prev + 1))
-    onExecute(
-        run, 
-        model
-    )
+        dismissHelp('analysis-setup')
+        e.preventDefault()
+        if (!valid) return
+        console.log('Model Inference Started')
+        setAnalysisCount((prev => prev + 1))
+        setAnalysisPanelOpen(!analysisPanelOpen)
+        onExecute(
+            run, 
+            model
+        )
     }
+
+    function handleOpenButton() {
+        setAnalysisPanelOpen(!analysisPanelOpen)
+        onPromptedAction?.()
+    }
+
+
+
 
     return(
         <div className='relative flex min-h-0'>
             <button
             type="button"
-            onClick={() => setAnalysisPanelOpen(!analysisPanelOpen)}
+            onClick={() => handleOpenButton()}
             className="fixed bottom-4 left-4 z-[100] flex h-14 w-14 items-center justify-center rounded-full
                 bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 active:scale-95
             "
@@ -59,7 +75,16 @@ export function MobileAnalysisPanel({ run, onExecute }: Props) {
             <BrainCircuit className="h-6 w-6" />
             </button>
 
-
+            {analysisSetupHelp && (
+                <HelpBubble
+                title="To Run Analysis"
+                position='bottom-right'
+                onClose={() => dismissHelp('analysis-setup')}
+                >
+                1) Select a model from the dropdown     
+                2) Click "Run Analysis"
+                </HelpBubble>
+            )}
 
             <div className='flex justify-center'>
                 <div 
@@ -122,6 +147,11 @@ export function MobileAnalysisPanel({ run, onExecute }: Props) {
                             <Play className="size-4" />
                             Run Analysis
                         </Button>
+
+
+
+
+
                         </form>
                     </div>          
                 </div>
@@ -147,23 +177,33 @@ export function MobileAnalysisPanel({ run, onExecute }: Props) {
 
 
 
-export function DesktopAnalysisPanel({ run, onExecute }: Props) {
+export function DesktopAnalysisPanel({ run, onExecute, onPromptedAction }: Props) {
     const [analysisPanelOpen, setAnalysisPanelOpen] = useState(false)
     const [model, setModel] = useState(MODELS[0])
     const valid = (model != MODELS[0]) && (run.status == 'complete')
     const [analysisCount, setAnalysisCount] = useState(0)
+    // Help Button
+    const { dismissHelp, isHelpDismissed } = useRunHelp(run.id)
+    const analysisSetupHelp = analysisPanelOpen && !isHelpDismissed('analysis-setup')
 
 
     // Handle inferencing
     function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!valid) return
-    console.log('Model Inference Started')
-    setAnalysisCount((prev => prev + 1))
-    onExecute(
-        run, 
-        model
-    )
+        dismissHelp('analysis-setup')
+        e.preventDefault()
+        if (!valid) return
+        console.log('Model Inference Started')
+        setAnalysisCount((prev => prev + 1))
+        setAnalysisPanelOpen(!analysisPanelOpen)
+        onExecute(
+            run, 
+            model
+        )
+    }
+    
+    function handleOpenButton() {
+        setAnalysisPanelOpen(!analysisPanelOpen)
+        onPromptedAction?.()
     }
 
     return (
@@ -171,26 +211,39 @@ export function DesktopAnalysisPanel({ run, onExecute }: Props) {
 
         <div className='relative flex min-h-0'>
             <button 
-            onClick={() => setAnalysisPanelOpen(!analysisPanelOpen)} 
-            className='flex flex-col w-5 md:w-[3vw] items-center justify-center hover:bg-muted'
+            onClick={() => handleOpenButton()} 
+            className={`absolute left-0 top-5
+                h-[calc(100%-40px)] w-[3vw]
+                items-center rounded-r-xl justify-center bg-foreground hover:bg-muted-foreground
+                ${analysisPanelOpen ? "opacity-30" : "opacity-100"}
+                `}
             >
-
-            {analysisPanelOpen ? <ChevronLeft /> : <ChevronRight />}
-            <div className="mt-4 px-3 flex flex-col gap-4 ">
-                <span className="mt-7 mb-50 -rotate-90 whitespace-nowrap text-xs font-medium tracking-[0.2em] text-muted-foreground">
-                ANALYSIS
-                </span>            
-            </div>
+                <div className='flex flex-col items-center pt-25'>
+                {analysisPanelOpen ? <ChevronLeft className='text-muted'/> : <ChevronRight className='text-muted'/>}
+                <div className="mt-4 px-3 flex flex-col gap-4 ">
+                    <span className="mt-7 mb-50 -rotate-90 whitespace-nowrap text-xs text-muted font-medium tracking-[0.2em]">
+                    ANALYSIS
+                    </span>            
+                </div>
+                </div>
             </button>
 
             
-
+            {analysisSetupHelp && (
+                <HelpBubble
+                title="To Run Analysis"
+                position='bottom-left'
+                onClose={() => dismissHelp('analysis-setup')}
+                >
+                1) Select a model from the dropdown
+                2) Click "Run Analysis"
+                </HelpBubble>
+            )}
             
 
             <div 
             className={`
-                absolute left-[10vw] md:left-[3vw] top-0
-                h-[calc(100%-30px)] w-[85vw] md:w-90 md:w-[25vw]
+                absolute left-[3.5vw] top-2 h-[calc(100%-20px)] md:w-[25vw]
                 rounded-xl border bg-card p-4
                 transition-transform duration-300 ease-in-out
                 z-50 shadow-lg

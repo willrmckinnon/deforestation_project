@@ -21,7 +21,8 @@ export function useInvestigations() {
       status: 'streaming',
       batches: [],
       expectedBatches,
-      reports: []
+      reports: [],
+      location: ""
     }
     setRuns((prev) => [run, ...prev])
     setActiveRunId(id)
