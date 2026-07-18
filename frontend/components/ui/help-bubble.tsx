@@ -29,6 +29,8 @@ const positionClasses: Record<HelpBubblePosition, string> = {
   'with-analysis-execute': 'left-[5vw] bottom-[13vh]',
 }
 
+const GlobalHelpIO = process.env.NEXT_PUBLIC_GlobalHelpButtonIO == "true"
+
 export function HelpBubble({
   title,
   children,
@@ -45,7 +47,8 @@ export function HelpBubble({
         position === 'with-masks' && "relative",
         position === 'with-analysis-execute' && "relative min-w-[23vw]",
         !['with-masks', 'with-analysis-execute'].includes(position) && "fixed",
-        "inset-0 z-[100]"
+        "inset-0 z-[100]",
+        !GlobalHelpIO && 'hidden',
     )}>
       <div
         role="dialog"
