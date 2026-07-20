@@ -1,25 +1,20 @@
 # Custom Functions
-from utils.helper import point_to_bbox, crop32
+from utils.helper import point_to_bbox, crop32, image_to_base64
 from models.utils.display import sentinel_worldcover_image_and_mask_display as wc_display
 
 # Basic Libraries
-import base64
 import warnings
 import odc.stac
 import webcolors
 import numpy as np
 from math import sqrt
 from PIL import Image
-from io import BytesIO
 import rioxarray as rio
 import planetary_computer
-from math import log as ln
 from shapely import from_wkt
-import matplotlib.pyplot as plt
 from pystac_client import Client
 from shapely.geometry import shape
 from shapely.ops import unary_union
-from pympler.asizeof import asizeof
 from datetime import datetime, timedelta
 
 # Retry libraries
@@ -28,12 +23,6 @@ from pystac_client.stac_api_io import StacApiIO
 
 
 PLANETARY_COMPUTER_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
-
-def image_to_base64(img):
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    header = "data:image/png;base64,"
-    return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
 def closest_css3_color(rgb):
     r, g, b = rgb
@@ -177,7 +166,7 @@ class ObservedArea:
             resampling = 'bilinear',
             chunks = {'x': 512, 'y': 512}
         )
-        #self.logger(f'Resulting file size of {(asizeof(xx)/ 1000000000):.2f} GB')
+
         xx = xx[bands].median(dim="time")
         image_array = (
             xx
@@ -205,8 +194,6 @@ class ObservedArea:
 
 
         rat = target_sat/norm_data.mean()
-        #exp = ln(target_sat)/(ln(norm_data.mean())+1e-6)
-        #norm_data = np.power(norm_data, exp)
         norm_data = np.clip((norm_data*rat),0,255).astype(np.uint8)
 
         # Add a mask if requested and return
@@ -267,7 +254,7 @@ class ObservedArea:
         else: model_name = 'No model name provided'
 
         if self.logger != print: 
-            self.logger(f'Mask of observation {self.date}', 'status')
+            
             img = self.get_image(mask_type=mask_type)
             result = {}
             result['model_name'] = model_name

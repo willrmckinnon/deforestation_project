@@ -27,7 +27,8 @@ export function makeBatch(msg: any): Batch {
 
 export const AREA_SIZES = ['25 sqkm', '50 sqkm', '75 sqkm', '100 sqkm']
 export const NUM_OBSERVATIONS = ['2','3','4','5','6','7','8']
-export const MODELS = [
+export const MODELS: string[] = [
   'None', 
-  'Custom Forest Detection Model'
+  'Custom Forest Detection Model',
+  'NDVI Calculation'
 ]

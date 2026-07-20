@@ -7,7 +7,7 @@ Needs to be updated every time new edits happen that affect how investigations
 happen on the models feature branch
  
 '''
-from utils.forest_investigation_class import ForestInvestigation
+from investigations.forest_investigation_class import ForestInvestigation
 
  
 def collect_observations(lat, lon, sqkm, num_obs, logger = print):
@@ -27,6 +27,6 @@ def collect_observations(lat, lon, sqkm, num_obs, logger = print):
     logger(f'Investigation complete for {lat}, {lon}.', 'status')
     logger('','complete')
 
-
+ 
 
 

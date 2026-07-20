@@ -1,6 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Leaf, MapPin, BrainCircuit, Lightbulb } from 'lucide-react'
 
 type Props = {
@@ -8,11 +9,16 @@ type Props = {
   onClose: () => void
 }
 
+const GlobalHelpIO = process.env.NEXT_PUBLIC_GlobalHelpButtonIO == "true"
+
 export function WelcomeModal({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center ">
+    <div className={cn(
+        'fixed inset-0 z-50 flex items-center justify-center',
+        !GlobalHelpIO && 'hidden',
+    )}>
         <button onClick={onClose} className='fixed inset-0 z-40 bg-muted/1 backdrop-blur-sm'/>
       <div className="relative z-50 h-[75vh] mb-20 md:h-[60vh] md:mb-0 mx-6 md:mx-0 w-full max-w-5xl rounded-3xl border border-border bg-background p-8 shadow-2xl">
         {/* Close Button */}

@@ -1,7 +1,7 @@
 # Custom Imports
 from utils import point_observation
-from models.inference import Model
-from utils.helper import crop32
+from utils.helper import crop32, load_config, image_to_base64
+
 
 # Library Imports
 import uuid
@@ -12,15 +12,27 @@ from io import BytesIO
 from geopandas import GeoDataFrame
 from datetime import datetime, timedelta
 
+
+
+def blank_obs_mask_return(obs):
+    config = load_config()
+    placeholder_img = Image.open(config['placeholder_image_path'])
+    blank_return = {
+        'model_name': 'No Model Defined',
+        'model_tag': 'No Model Defined',
+        'batchId': obs.batch,
+        'image': image_to_base64(placeholder_img),
+        'metadata': {'labels': []}
+    }
+    return blank_return
+
+
  
-
-
 
 class Investigation():
     def __init__(self,
                 lat, lon,
                 sqkm,
-                models_to_inference = {},
                 observation_increments = [], #Years back to search
                 logger = print
                 ):
@@ -30,11 +42,9 @@ class Investigation():
         self.sqkm = sqkm
         self.logger = logger
         self.models = {}
-        self.models_to_inference = models_to_inference
-        self.observation_increments = observation_increments
-        
+        self.observation_increments = observation_increments        
         self.collect_observations()
-        #self.generate_masks()
+
 
 
 
@@ -78,11 +88,6 @@ class Investigation():
 
             
     def package_obs_batch(self, ind, obs):
-        def image_to_base64(img):
-            buffer = BytesIO()
-            img.save(buffer, format="PNG")
-            header = "data:image/png;base64,"
-            return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
         return {
             'batch_id': "Observation "+str(ind),
@@ -129,16 +134,19 @@ class Investigation():
         self.logger('Completed observations for given areas', 'status')
 
 
+    # Cycles through each observation in the investigation and return mask
+    def generate_masks(self, model_info):
+        # Run the inferences for each observation
+        # If Failed, return a blank return for that observation
+        for obs in self.observations:
+            try: self.single_obs_mask(obs, model_info)
+            except: self.logger(blank_obs_mask_return(obs), 'model_return')
 
 
-    def generate_masks(self):
-        self.models = {}
-        for model_type, model_path in self.models_to_inference.items():
-            self.models[model_type] = Model(model_path, model_name=model_type)
 
-        for model_type, model in self.models.items():
-            for obs in self.observations:
-                obs.inference(model, model_type)
+    # To be over written by individual investigation types
+    def single_obs_mask(self, obs, model_info):
+        self.logger(blank_obs_mask_return(obs), 'model_return')
 
 
 
@@ -154,6 +162,9 @@ class Investigation():
             pickle.dump(state, f)
         self.logger(f'File saved as <{path}>')
 
+    def complete_setup(self):
+        self.logger("complete_setup method not defined for this investigation type")
+
 
     @classmethod
     def load(cls, path):
@@ -167,19 +178,19 @@ class Investigation():
             keys.append(key)
         print(f'Investigation Object loaded with the following attributes: {keys}')
         return obj
-    
+     
 
     @classmethod
-    def rehydrate(cls, lat, lon, sqkm, models_to_inference, logger, observations):
+    def rehydrate(cls, lat, lon, sqkm, logger, observations):
         obj = cls.__new__(cls)
         setattr(obj, 'lat', lat)
         setattr(obj, 'lon', lon)
         setattr(obj, 'sqkm', sqkm)
-        setattr(obj, 'models_to_inference', models_to_inference)
         setattr(obj, 'logger', logger)
         setattr(obj, 'observations', observations)
+        obj.complete_setup()
         return obj
         
-    
+     
 
 

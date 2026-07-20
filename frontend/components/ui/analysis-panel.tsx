@@ -46,7 +46,7 @@ export function MobileAnalysisPanel({ run, onExecute, onPromptedAction }: Props)
         dismissHelp('analysis-setup')
         e.preventDefault()
         if (!valid) return
-        console.log('Model Inference Started')
+        console.log(`Inference Started for: ${model}`)
         setAnalysisCount((prev => prev + 1))
         setAnalysisPanelOpen(!analysisPanelOpen)
         onExecute(
@@ -192,7 +192,7 @@ export function DesktopAnalysisPanel({ run, onExecute, onPromptedAction }: Props
         dismissHelp('analysis-setup')
         e.preventDefault()
         if (!valid) return
-        console.log('Model Inference Started')
+        console.log(`Inference Started for: ${model}`)
         setAnalysisCount((prev => prev + 1))
         setAnalysisPanelOpen(!analysisPanelOpen)
         onExecute(

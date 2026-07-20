@@ -1,12 +1,21 @@
 # Basic Libraries
 import yaml
+import base64
 import numpy as np
 from PIL import Image
+from io import BytesIO
 from shapely.ops import transform
 from pyproj import CRS,Transformer
 from rasterio.transform import Affine
 from shapely.geometry import box, Polygon
 
+
+# Stringifies Images for passage to frontend
+def image_to_base64(img):
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    header = "data:image/png;base64,"
+    return header + str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
 #Reads the config file
 def load_config():

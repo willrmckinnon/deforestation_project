@@ -205,7 +205,7 @@ export function useInvestigations() {
       area: run.batches[0].area,})
   }, [])
 
-
+ 
 
   // cleanup on unmount
   useEffect(() => {

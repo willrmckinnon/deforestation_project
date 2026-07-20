@@ -1,12 +1,21 @@
 # Custom Imports
 from models.inference import Model
 from utils.helper import load_config
-from utils.forest_investigation_class import ForestInvestigation
+from investigations.forest_investigation_class import ForestInvestigation
 from utils.point_observation import ObservedArea
 
 
 # Basic Libraries
- 
+from importlib import import_module
+
+
+# Method to dynamically setup the investigation type
+def load_class(path: str):
+    module_name, class_name = path.rsplit(".", 1)
+    module = import_module(module_name)
+    return getattr(module, class_name) 
+
+
 def run_inference(params, logger):
     model_name = params['modelName']
     observation_strings = params['observations']
@@ -16,41 +25,47 @@ def run_inference(params, logger):
 
     # Genertate the Masks
     try:
+        # Collect the model information from config
         config = load_config()
-        if config['model_paths'][model_name]:
-            models_to_inference = {model_name: config['model_paths'][model_name]}
+        if config['models'][model_name]:
+            model_info = config['models'][model_name]
         else:
             logger('Could not find specified model name', 'status')
             return
 
-        results = []
-
+        # Re-hydrate the observations
         observations = []
         for obs_str in observation_strings:
             obs = ObservedArea.unpack(obs_str['observation'], logger)
             obs.batch = obs_str['batchId']
             observations.append(obs)
 
-        investigation = ForestInvestigation.rehydrate(
+
+        # Setup the investigation (mask generation) class based on the config input
+        Investigation = load_class(model_info['class'])
+        investigation = Investigation.rehydrate(
             lat = lat,
             lon = lon,
             sqkm = sqkm,
-            models_to_inference = models_to_inference,
             logger = logger,
             observations=observations
         )
 
-        investigation.generate_masks()
+        # Run the Investigation
+        investigation.generate_masks(model_info)
+
+        # Generate Comparison
+        try:
+            investigation.analyze_change(model_info)
+        except Exception as e: 
+            logger(f'Time Analysis failed because of the following error: \n{e}','status') 
+
 
     except Exception as e: 
         logger(f'Failed to collect masks because of the following error: \n{e}','status')   
 
 
-    # Compare masks
-    try:
-        investigation.analyze_vegetation_change(model_name)
-    except Exception as e: 
-        logger(f'Time Analysis failed because of the following error: \n{e}','status')          
+         
 
     # Send Complete Message
     logger('','complete')

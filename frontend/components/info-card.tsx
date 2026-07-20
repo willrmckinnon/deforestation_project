@@ -8,7 +8,7 @@ import { ChevronUp, ChevronDown} from 'lucide-react'
 type Props = {info: Info}
 
 export function InfoCard({ info }: Props) {
-const [open, setOpen] = useState(true)
+const [open, setOpen] = useState(false)
 return (
     <div className="flex flex-col py-2 px-1">
         {/* Header */}

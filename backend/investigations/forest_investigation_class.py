@@ -1,5 +1,6 @@
 # Custom Imports
-from utils.investigation_class import Investigation
+from models.inference import Model
+from investigations.investigation_class import Investigation
 
 # Library Imports
 import numpy as np
@@ -8,35 +9,52 @@ from rasterio.features import shapes
 from scipy.ndimage import binary_opening
 from shapely.geometry import shape, MultiPolygon
 
-
+ 
 
 class ForestInvestigation(Investigation):
     def __init__(self,
                 lat, lon,
                 sqkm,
-                model_path = None,
-                models_to_inference = None,
                 observation_increments = [], #Years back to search
                 logger = print
                 ):
-        
-        if models_to_inference == None:
-            model_tag = 'forest'
-            models_to_inference = {model_tag: model_path}
             
-        super().__init__(lat, lon, sqkm, models_to_inference, observation_increments, logger)
-        
+        super().__init__(lat, lon, sqkm, observation_increments, logger)
 
-  
+
+
  
 
-    def analyze_vegetation_change(self, model_tag, filter_width = 3):
+    # A method unique to each investigation type that completes the setup
+    def complete_setup(self):
+        placeholder = None
+ 
+
+
+
+
+
+    # Method to generate the return for each batch
+    def single_obs_mask(self, obs, model_info):
+        # Setup the Model
+        model = Model(model_info['path'], model_name=model_info['tag'])
+
+        # Inference the model for that observation
+        obs.inference(model, model_info['tag'])
+
+
+
+
+
+    # method to generate a complete report of change
+    def analyze_change(self, model_info, filter_width = 3):
+        model_tag = model_info['tag']
+        
         # Double check that there are enough observations to conduct a change analysis
         if len(self.observations) < 2:
             self.logger('No historical increments provided to analyze', 'status')
             return
         
-
         result = {}
         result['type'] = model_tag
         dates = [obs.date.date() for obs in self.observations]
@@ -55,21 +73,6 @@ class ForestInvestigation(Investigation):
             items_in_dict = refined_label_map.keys()
             for key in to_del:
                 if key in  items_in_dict: del refined_label_map[key]
-
-
-        
-
-        '''
-        Information I want to send back to the frontend:
-        1. Name of Model
-        2. Data Ranges
-        3. List of Dates
-        4. Change Log rows from each observation to the next
-        5. Change log row for oldest and newest observation
-        6. Image of each change
-
-        '''
-
 
         # Generate Change Log rows
         def change_log_row(obs1, obs2, count, final=False):
