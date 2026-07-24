@@ -50,6 +50,7 @@ export type Batch = {
   metadata: Info[]
   status: BatchStatus
   emptyBatch: Boolean
+  meanNdvi?: number
 }
 
 
@@ -95,6 +96,12 @@ export type Preset = {
   num_obs: string
   iconUrl: string
   country: string
+}
+
+
+export type ReportProps = {
+  report: Report,
+  batches: Batch[]
 }
 
 

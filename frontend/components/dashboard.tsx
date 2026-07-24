@@ -6,7 +6,7 @@ import { PanelLeftOpen } from 'lucide-react'
 import { WelcomeModal } from '@/components/instructions'
 import { InferenceForm } from './inference-form'
 import { InvestigationView } from './investigation-view'
-import { useInvestigations } from '@/lib/use-investigations'
+import { useInvestigations } from '@/lib/backend_controller'
 import type { InferenceParams } from '@/lib/types'
  
 export function Dashboard() {

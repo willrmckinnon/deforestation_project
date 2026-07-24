@@ -7,8 +7,8 @@ import type { Run } from '@/lib/types'
 import { BatchCard } from './batch-card'
 import { Field } from './inference-form'
 import { MODELS } from '@/lib/inference-engine'
-import { Button } from '@/components/ui/button'
-import { ReportTile, ReportCard } from '@/components/ui/report-card'
+import { Button } from '@/lib/button'
+import { ReportTile, ReportCard } from '@/components/report-card'
 import { DesktopAnalysisPanel, MobileAnalysisPanel } from '@/components/ui/analysis-panel'
 import {
   Loader2,
@@ -381,7 +381,7 @@ export function InvestigationView({ run, onExecute }: Props) {
             <div className="flex flex-1 pr-[5vw] md:pr-[3vw] pl-[5vw] md:pl-0 min-w-0 md:min-h-0 overflow-y-auto py-4">
               {activeReport ?(
                 <div className="flex flex-1 min-w-0 min-h-0">
-                  <ReportCard report={activeReport} />
+                  <ReportCard report={activeReport} batches={run.batches} />
                 </div>                
               ) : !activeBatch ? (
                 <div className="flex flex-1 justify-center items-center min-h-0 pb-40">

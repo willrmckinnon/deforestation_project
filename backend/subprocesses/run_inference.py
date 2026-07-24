@@ -6,6 +6,7 @@ from utils.point_observation import ObservedArea
 
 
 # Basic Libraries
+import traceback
 from importlib import import_module
 
 
@@ -58,11 +59,11 @@ def run_inference(params, logger):
         try:
             investigation.analyze_change(model_info)
         except Exception as e: 
-            logger(f'Time Analysis failed because of the following error: \n{e}','status') 
+            logger(f'Time Analysis failed because of the following error: \n{traceback.format_exc()}','status') 
 
 
     except Exception as e: 
-        logger(f'Failed to collect masks because of the following error: \n{e}','status')   
+        logger(f'Failed to collect masks because of the following error: \n{traceback.format_exc()}','status')   
 
 
          

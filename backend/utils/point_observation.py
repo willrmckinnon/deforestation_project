@@ -152,8 +152,9 @@ class ObservedArea:
 
     #Method to stack specified bands of the observation's items
     #RETURNS: Numpy Array and X Array
-    def stack(self, bands, items = None):
+    def stack(self, bands, items = None, aoi = None):
         if items == None: items = self.items
+        if aoi == None: aoi = self.aoi
         #Sign the items
         signed_items = []
         for item in items: signed_items.append(planetary_computer.sign(item))
@@ -162,11 +163,10 @@ class ObservedArea:
         xx = odc.stac.load(
             signed_items,
             bands = bands,
-            geopolygon=self.aoi,
+            geopolygon=aoi,
             resampling = 'bilinear',
             chunks = {'x': 512, 'y': 512}
         )
-
         xx = xx[bands].median(dim="time")
         image_array = (
             xx
@@ -174,12 +174,11 @@ class ObservedArea:
             .transpose("y", "x", "variable")
             .values
         )
-
         return image_array, xx
     
     #Method to quickly return the visual as a PIL image
-    def get_image(self, mask_type = None, target_sat = 75):
-        data = self.stack(['B02','B03','B04'])[0]
+    def get_image(self, mask_type = None, target_sat = 75, aoi = None):
+        data = self.stack(['B02','B03','B04'], aoi=aoi)[0]
         data =crop32(np.transpose(data,(2,0,1)))
         data = np.transpose(data,(1,2,0))
         norm_data = np.zeros(data.shape)

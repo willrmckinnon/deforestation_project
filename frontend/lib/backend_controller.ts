@@ -108,6 +108,9 @@ export function useInvestigations() {
                     ...batch,
                     status: 'complete',
                     metadata: [...batch.metadata, ...newMetadata],
+                    ...(result?.mean_ndvi !== undefined && {
+                      meanNdvi: result.mean_ndvi,
+                    }),
                     masks: [
                       ...batch.masks,
                       {
@@ -116,6 +119,7 @@ export function useInvestigations() {
                         modelName: result.model_name,
                         tag: result.model_tag
                       },
+                    
                     ],
                   }
                 }),

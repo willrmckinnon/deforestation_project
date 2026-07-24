@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/lib/button'
 import type { Run } from '@/lib/types'
 import {
   PanelLeftClose,

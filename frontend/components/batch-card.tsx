@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Run, Batch } from '@/lib/types'
 import { MapPin, Map, Cloud } from 'lucide-react'
-import { InfoCard } from '@/components/info-card'
+import { InfoCard } from '@/components/ui/info-card'
 
 // Help Button Imports
 import { HelpBubble } from '@/components/ui/help-bubble'

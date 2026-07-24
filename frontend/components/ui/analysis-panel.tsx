@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Run } from '@/lib/types'
 import { Field } from '../inference-form'
 import { MODELS } from '@/lib/inference-engine'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/lib/button'
 import {
   MapPinned,
   ChevronLeft,
